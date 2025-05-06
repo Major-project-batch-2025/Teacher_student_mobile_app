@@ -2,8 +2,10 @@
 // Purpose: App entry point - Initializes Firebase (commented for now), sets up MultiProvider,
 // configures theme based on colors.dart
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:timetable_app/firebase_options.dart';
 
 // Core
 import 'core/constants.dart';
@@ -23,10 +25,11 @@ import 'presentation/auth/screens/login_role_select.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // TO DO: Initialize Firebase when backend is ready
-  // await FirebaseService.initialize();
-  
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const MyApp());
 }
 
