@@ -13,9 +13,9 @@ class ClassActionScreen extends StatelessWidget {
   final String section;
   
   const ClassActionScreen({
-    Key? key,
+    super.key,
     required this.section,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -255,10 +255,10 @@ class ClassActionScreen extends StatelessWidget {
                 ),
               );
             },
-            child: const Text('Revert'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
             ),
+            child: const Text('Revert'),
           ),
         ],
       ),

@@ -17,10 +17,10 @@ class ExtraClassForm extends StatefulWidget {
   final int semester;
   
   const ExtraClassForm({
-    Key? key,
+    super.key,
     required this.section,
     required this.semester,
-  }) : super(key: key);
+  });
 
   @override
   State<ExtraClassForm> createState() => _ExtraClassFormState();
@@ -266,8 +266,7 @@ class _ExtraClassFormState extends State<ExtraClassForm> {
               onPrimary: Colors.white,
               surface: Colors.grey,
               onSurface: Colors.white,
-            ),
-            dialogBackgroundColor: Colors.grey.shade900,
+            ), dialogTheme: DialogThemeData(backgroundColor: Colors.grey.shade900),
           ),
           child: child!,
         );
@@ -294,8 +293,7 @@ class _ExtraClassFormState extends State<ExtraClassForm> {
               onPrimary: Colors.white,
               surface: Colors.grey,
               onSurface: Colors.white,
-            ),
-            dialogBackgroundColor: Colors.grey.shade900,
+            ), dialogTheme: DialogThemeData(backgroundColor: Colors.grey.shade900),
           ),
           child: child!,
         );
@@ -329,8 +327,7 @@ class _ExtraClassFormState extends State<ExtraClassForm> {
               onPrimary: Colors.white,
               surface: Colors.grey,
               onSurface: Colors.white,
-            ),
-            dialogBackgroundColor: Colors.grey.shade900,
+            ), dialogTheme: DialogThemeData(backgroundColor: Colors.grey.shade900),
           ),
           child: child!,
         );

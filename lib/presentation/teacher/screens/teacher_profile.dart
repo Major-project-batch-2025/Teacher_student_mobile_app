@@ -10,7 +10,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../auth/screens/login_role_select.dart';
 
 class TeacherProfileScreen extends StatelessWidget {
-  const TeacherProfileScreen({Key? key}) : super(key: key);
+  const TeacherProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -194,7 +194,7 @@ class TeacherProfileScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                    ).toList(),
+                    ),
                   ],
                 ),
               ),

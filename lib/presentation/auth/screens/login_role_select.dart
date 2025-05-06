@@ -8,7 +8,7 @@ import 'student_login.dart';
 import 'teacher_login.dart';
 
 class LoginRoleSelectScreen extends StatelessWidget {
-  const LoginRoleSelectScreen({Key? key}) : super(key: key);
+  const LoginRoleSelectScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

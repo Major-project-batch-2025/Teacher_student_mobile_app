@@ -13,7 +13,7 @@ import 'teacher_profile.dart';
 import 'teacher_section_view.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
-  const TeacherHomeScreen({Key? key}) : super(key: key);
+  const TeacherHomeScreen({super.key});
 
   @override
   State<TeacherHomeScreen> createState() => _TeacherHomeScreenState();

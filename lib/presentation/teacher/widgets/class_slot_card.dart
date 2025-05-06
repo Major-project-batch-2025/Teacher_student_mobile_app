@@ -12,11 +12,11 @@ class ClassSlotCard extends StatelessWidget {
   final bool showActions;
   
   const ClassSlotCard({
-    Key? key,
+    super.key,
     required this.classSlot,
     this.onTap,
     this.showActions = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

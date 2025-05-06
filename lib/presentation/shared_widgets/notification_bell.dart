@@ -13,9 +13,9 @@ class NotificationBell extends StatelessWidget {
   final bool isTeacher;
   
   const NotificationBell({
-    Key? key,
+    super.key,
     this.isTeacher = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

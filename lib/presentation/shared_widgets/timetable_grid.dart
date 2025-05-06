@@ -14,10 +14,10 @@ class TimetableGrid extends StatefulWidget {
   final Function(ClassSlot)? onClassTap;
   
   const TimetableGrid({
-    Key? key,
+    super.key,
     this.isEditable = false,
     this.onClassTap,
-  }) : super(key: key);
+  });
 
   @override
   State<TimetableGrid> createState() => _TimetableGridState();

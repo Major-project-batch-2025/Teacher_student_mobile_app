@@ -17,12 +17,12 @@ class ActionDialog extends StatefulWidget {
   final String teacherName;
   
   const ActionDialog({
-    Key? key,
+    super.key,
     required this.classSlot,
     required this.actionType,
     required this.teacherId,
     required this.teacherName,
-  }) : super(key: key);
+  });
 
   @override
   State<ActionDialog> createState() => _ActionDialogState();
@@ -273,7 +273,7 @@ class _ActionDialogState extends State<ActionDialog> {
   // Create a sample time slot for demonstration
   ClassSlot _createSampleTimeSlot(int dayOfWeek, String startTime, String endTime) {
     return ClassSlot(
-      id: 'slot_$dayOfWeek\_$startTime',
+      id: 'slot_${dayOfWeek}_$startTime',
       subject: widget.classSlot.subject,
       teacherId: widget.teacherId,
       teacherName: widget.teacherName,

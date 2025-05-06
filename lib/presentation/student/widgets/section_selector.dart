@@ -11,11 +11,11 @@ class SectionSelector extends StatelessWidget {
   final Function(String) onSectionChanged;
   
   const SectionSelector({
-    Key? key,
+    super.key,
     required this.currentSection,
     required this.availableSections,
     required this.onSectionChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

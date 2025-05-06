@@ -467,7 +467,7 @@ class TimetableProvider extends ChangeNotifier {
     ];
     
     return Timetable(
-      id: 'timetable_$department\_$section\_$semester',
+      id: 'timetable_${department}_${section}_$semester',
       department: department,
       section: section,
       semester: semester,

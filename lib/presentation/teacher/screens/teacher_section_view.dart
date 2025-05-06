@@ -21,11 +21,11 @@ class TeacherSectionViewScreen extends StatefulWidget {
   final String department;
   
   const TeacherSectionViewScreen({
-    Key? key,
+    super.key,
     required this.section,
     required this.semester,
     required this.department,
-  }) : super(key: key);
+  });
 
   @override
   State<TeacherSectionViewScreen> createState() => _TeacherSectionViewScreenState();

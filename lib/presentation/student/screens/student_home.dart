@@ -14,7 +14,7 @@ import '../../shared_widgets/timetable_grid.dart';
 import 'student_profile.dart';
 
 class StudentHomeScreen extends StatefulWidget {
-  const StudentHomeScreen({Key? key}) : super(key: key);
+  const StudentHomeScreen({super.key});
 
   @override
   State<StudentHomeScreen> createState() => _StudentHomeScreenState();

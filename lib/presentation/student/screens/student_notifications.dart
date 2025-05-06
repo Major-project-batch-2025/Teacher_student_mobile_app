@@ -9,7 +9,7 @@ import '../../../data/models/notification_model.dart';
 import '../../providers/notification_provider.dart';
 
 class StudentNotificationsScreen extends StatelessWidget {
-  const StudentNotificationsScreen({Key? key}) : super(key: key);
+  const StudentNotificationsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
