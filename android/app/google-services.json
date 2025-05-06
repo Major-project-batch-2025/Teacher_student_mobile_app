@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "379937567894",
+    "project_id": "majorproject-c662e",
+    "storage_bucket": "majorproject-c662e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:379937567894:android:a285e2b2181d79e507beb7",
+        "android_client_info": {
+          "package_name": "com.example.admin_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDK5jT7KlSS76zdESlBKeOmMQRhnrdAvKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:379937567894:android:8e352629f72ca6b707beb7",
+        "android_client_info": {
+          "package_name": "com.example.timetable_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDK5jT7KlSS76zdESlBKeOmMQRhnrdAvKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
