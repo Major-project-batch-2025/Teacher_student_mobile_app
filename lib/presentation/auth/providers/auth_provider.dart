@@ -80,7 +80,6 @@ class AuthProvider extends ChangeNotifier {
         .collection('Students')
         .where('usn', isEqualTo: usn.toUpperCase())
         .where('dob', isEqualTo: dob)
-        .limit(1)
         .get();
 
     if (snapshot.docs.isNotEmpty) {
