@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/constants.dart';
 import '../../../core/utils/date_helpers.dart';
-import '../../../domain/entities/class_action.dart';
+// import '../../../domain/entities/class_action.dart';
 import '../../../domain/entities/teacher.dart';
 import '../../../domain/entities/timetable.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -405,7 +405,7 @@ class _ExtraClassFormState extends State<ExtraClassForm> {
       
       // Apply the extra class action
 print('Extra class created: ${originSlot.subject}'); 
-// TODO: Implement backend integration to store this in Firestore
+// TO DO: Implement backend integration to store this in Firestore
 
       
       // Show success message

@@ -1,5 +1,5 @@
 // lib/main.dart
-// Purpose: App entry point - Initializes Firebase (commented for now), sets up MultiProvider,
+// Purpose: App entry point 
 // configures theme based on colors.dart
 
 import 'package:firebase_core/firebase_core.dart';
