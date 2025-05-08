@@ -306,14 +306,14 @@ class _ActionDialogState extends State<ActionDialog> {
       final provider = Provider.of<TimetableProvider>(context, listen: false);
       
       // Apply the action
-      provider.applyClassAction(
-        widget.actionType,
-        originSlot: widget.classSlot,
-        targetSlot: _targetSlot,
-        teacherId: widget.teacherId,
-        teacherName: widget.teacherName,
-        reason: _reasonController.text,
-      );
+      // provider.applyClassAction(
+      //   widget.actionType,
+      //   originSlot: widget.classSlot,
+      //   targetSlot: _targetSlot,
+      //   teacherId: widget.teacherId,
+      //   teacherName: widget.teacherName,
+      //   reason: _reasonController.text,
+      // );
       
       // Close the dialog
       Navigator.of(context).pop(true);

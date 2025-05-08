@@ -106,7 +106,7 @@ class CacheDataSourceImpl implements CacheDataSource {
   Future<bool> cacheTimetable({
     required TimetableModel timetable,
   }) async {
-    final key = '$timetablePrefixKey${timetable.section}_${timetable.semester}';
+    final key = '$timetablePrefixKey${timetable.sections}_${timetable.semester}';
     final timetableJson = jsonEncode(timetable.toJson());
     return await sharedPreferences.setString(key, timetableJson);
   }

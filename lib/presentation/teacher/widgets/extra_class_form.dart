@@ -404,14 +404,9 @@ class _ExtraClassFormState extends State<ExtraClassForm> {
       );
       
       // Apply the extra class action
-      timetableProvider.applyClassAction(
-        ActionType.extraClass,
-        originSlot: originSlot,
-        targetSlot: originSlot, // Same as origin for extra class
-        teacherId: teacher.id,
-        teacherName: teacher.name,
-        reason: _reasonController.text,
-      );
+print('Extra class created: ${originSlot.subject}'); 
+// TODO: Implement backend integration to store this in Firestore
+
       
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(

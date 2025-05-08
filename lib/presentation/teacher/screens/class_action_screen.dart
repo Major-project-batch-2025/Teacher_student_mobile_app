@@ -40,7 +40,8 @@ class ClassActionScreen extends StatelessWidget {
             );
           }
           
-          final actions = provider.actions;
+          final actions = <ClassAction>[]; // TODO: Replace with real actions when backend is ready
+
           
           if (actions.isEmpty) {
             return const Center(
@@ -235,16 +236,7 @@ class ClassActionScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               // Apply the normalize action
-              provider.applyClassAction(
-                ActionType.normalize,
-                originSlot: provider.timetable!.slots.firstWhere(
-                  (slot) => slot.id == action.originSlotId,
-                  orElse: () => ClassSlot.empty(),
-                ),
-                teacherId: action.teacherId,
-                teacherName: action.teacherName,
-                reason: 'Reverting previous action',
-              );
+              print('Would revert action: ${action.id}'); // TODO: Restore applyClassAction when backend ready
               Navigator.of(context).pop();
               
               // Show success message

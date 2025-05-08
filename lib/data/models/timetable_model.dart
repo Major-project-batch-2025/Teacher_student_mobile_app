@@ -1,154 +1,140 @@
-// lib/data/models/timetable_model.dart
-// Purpose: Data model for timetable and class slots with JSON serialization
-
 import '../../domain/entities/timetable.dart';
 
-class ClassSlotModel extends ClassSlot {
+class ClassSlotModel {
+  final String course;
+  final String teacher;
+
   const ClassSlotModel({
-    required super.id,
-    required super.subject,
-    required super.teacherId,
-    required super.teacherName,
-    required super.roomNumber,
-    required super.dayOfWeek,
-    required super.startTime,
-    required super.endTime,
-    required super.durationMinutes,
-    super.isCancelled,
-    super.isExtraClass,
-    super.isRescheduled,
-    super.originalSlotId,
-    required super.updatedAt,
-    super.colorCode,
+    required this.course,
+    required this.teacher,
   });
 
-  // Factory constructor to create a ClassSlotModel from JSON
   factory ClassSlotModel.fromJson(Map<String, dynamic> json) {
     return ClassSlotModel(
-      id: json['id'],
-      subject: json['subject'],
-      teacherId: json['teacherId'],
-      teacherName: json['teacherName'],
-      roomNumber: json['roomNumber'],
-      dayOfWeek: json['dayOfWeek'],
-      startTime: json['startTime'],
-      endTime: json['endTime'],
-      durationMinutes: json['durationMinutes'],
-      isCancelled: json['isCancelled'] ?? false,
-      isExtraClass: json['isExtraClass'] ?? false,
-      isRescheduled: json['isRescheduled'] ?? false,
-      originalSlotId: json['originalSlotId'],
-      updatedAt: DateTime.parse(json['updatedAt']),
-      colorCode: json['colorCode'] ?? 'blue',
+      course: json['course'] ?? 'Free',
+      teacher: json['teacher'] ?? '',
     );
   }
 
-  // Convert ClassSlotModel to JSON
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'subject': subject,
-      'teacherId': teacherId,
-      'teacherName': teacherName,
-      'roomNumber': roomNumber,
-      'dayOfWeek': dayOfWeek,
-      'startTime': startTime,
-      'endTime': endTime,
-      'durationMinutes': durationMinutes,
-      'isCancelled': isCancelled,
-      'isExtraClass': isExtraClass,
-      'isRescheduled': isRescheduled,
-      'originalSlotId': originalSlotId,
-      'updatedAt': updatedAt.toIso8601String(),
-      'colorCode': colorCode,
+      'course': course,
+      'teacher': teacher,
     };
-  }
-  
-  // Create ClassSlotModel from ClassSlot entity
-  factory ClassSlotModel.fromEntity(ClassSlot slot) {
-    return ClassSlotModel(
-      id: slot.id,
-      subject: slot.subject,
-      teacherId: slot.teacherId,
-      teacherName: slot.teacherName,
-      roomNumber: slot.roomNumber,
-      dayOfWeek: slot.dayOfWeek,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      durationMinutes: slot.durationMinutes,
-      isCancelled: slot.isCancelled,
-      isExtraClass: slot.isExtraClass,
-      isRescheduled: slot.isRescheduled,
-      originalSlotId: slot.originalSlotId,
-      updatedAt: slot.updatedAt,
-      colorCode: slot.colorCode,
-    );
   }
 }
 
-class TimetableModel extends Timetable {
+class TimetableModel {
+  final int numberOfSections;
+  final int semester;
+  final Map<String, Map<String, Map<String, ClassSlotModel>>> sections;
+
   const TimetableModel({
-    required super.id,
-    required super.department,
-    required super.section,
-    required super.semester,
-    required super.validFrom,
-    required super.validUntil,
-    required super.slots,
-    required super.lastUpdated,
+    required this.numberOfSections,
+    required this.semester,
+    required this.sections,
   });
 
-  // Factory constructor to create a TimetableModel from JSON
   factory TimetableModel.fromJson(Map<String, dynamic> json) {
-    final slotsList = (json['slots'] as List)
-        .map((slotJson) => ClassSlotModel.fromJson(slotJson))
-        .toList();
+    final rawSections = json['sections'] as Map<String, dynamic>;
+
+    final parsedSections = rawSections.map((sectionKey, sectionValue) {
+      final scheduleMap =
+          (sectionValue['schedule'] as Map<String, dynamic>).map(
+        (timeSlotKey, timeSlotValue) {
+          return MapEntry(
+            timeSlotKey,
+            (timeSlotValue as Map<String, dynamic>).map(
+              (dayKey, dayValue) {
+                return MapEntry(dayKey, ClassSlotModel.fromJson(dayValue));
+              },
+            ),
+          );
+        },
+      );
+
+      return MapEntry(sectionKey, scheduleMap);
+    });
 
     return TimetableModel(
-      id: json['id'],
-      department: json['department'],
-      section: json['section'],
+      numberOfSections: json['numberOfSections'],
       semester: json['semester'],
-      validFrom: DateTime.parse(json['validFrom']),
-      validUntil: DateTime.parse(json['validUntil']),
-      slots: slotsList,
-      lastUpdated: DateTime.parse(json['lastUpdated']),
+      sections: parsedSections,
     );
   }
 
-  // Convert TimetableModel to JSON
   Map<String, dynamic> toJson() {
+    final sectionsMap = sections.map((sectionKey, schedule) {
+      final scheduleMap = schedule.map((timeSlot, dayMap) {
+        return MapEntry(
+            timeSlot, dayMap.map((day, slot) => MapEntry(day, slot.toJson())));
+      });
+
+      return MapEntry(sectionKey, {'schedule': scheduleMap});
+    });
+
     return {
-      'id': id,
-      'department': department,
-      'section': section,
+      'numberOfSections': numberOfSections,
       'semester': semester,
-      'validFrom': validFrom.toIso8601String(),
-      'validUntil': validUntil.toIso8601String(),
-      'slots': slots.map((slot) => 
-        (slot is ClassSlotModel) 
-          ? slot.toJson() 
-          : ClassSlotModel.fromEntity(slot).toJson()
-      ).toList(),
-      'lastUpdated': lastUpdated.toIso8601String(),
+      'sections': sectionsMap,
     };
   }
-  
-  // Create TimetableModel from Timetable entity
-  factory TimetableModel.fromEntity(Timetable timetable) {
-    return TimetableModel(
-      id: timetable.id,
-      department: timetable.department,
-      section: timetable.section,
-      semester: timetable.semester,
-      validFrom: timetable.validFrom,
-      validUntil: timetable.validUntil,
-      slots: timetable.slots.map((slot) => 
-        (slot is ClassSlotModel) 
-          ? slot 
-          : ClassSlotModel.fromEntity(slot)
-      ).toList(),
-      lastUpdated: timetable.lastUpdated,
+
+  // ✅ Converts TimetableModel to domain-level Timetable entity
+  Timetable toEntity({
+    required String sectionKey,
+    required String department,
+    required DateTime lastUpdated,
+  }) {
+    final slots = <ClassSlot>[];
+
+    final schedule = sections[sectionKey];
+    if (schedule != null) {
+      schedule.forEach((timeSlot, dayMap) {
+        final timeParts = timeSlot.split('-');
+        final startTime = timeParts[0].trim();
+        final endTime = timeParts[1].trim();
+
+        dayMap.forEach((dayName, slotModel) {
+          final slot = ClassSlot(
+            id: '${sectionKey}_${dayName}_$timeSlot',
+            subject: slotModel.course,
+            teacherId: '', // optional: update if you store IDs later
+            teacherName: slotModel.teacher,
+            roomNumber: '', // not provided in data
+            dayOfWeek: _dayToIndex(dayName),
+            startTime: startTime,
+            endTime: endTime,
+            durationMinutes: 60, // or calculate if needed
+            updatedAt: lastUpdated,
+          );
+          slots.add(slot);
+        });
+      });
+    }
+
+    return Timetable(
+      id: 'timetable_${sectionKey}_${semester}',
+      department: department,
+      section: sectionKey,
+      semester: semester,
+      validFrom: DateTime.now(),
+      validUntil: DateTime.now().add(const Duration(days: 180)),
+      slots: slots,
+      lastUpdated: lastUpdated,
     );
+  }
+
+  // Utility to convert weekday string to 0-based index (Monday = 0)
+  int _dayToIndex(String day) {
+    const days = {
+      'Monday': 0,
+      'Tuesday': 1,
+      'Wednesday': 2,
+      'Thursday': 3,
+      'Friday': 4,
+      'Saturday': 5,
+    };
+    return days[day] ?? 0;
   }
 }

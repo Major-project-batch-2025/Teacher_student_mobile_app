@@ -6,6 +6,7 @@ import '../../../core/errors/failures.dart';
 import '../../models/class_action_model.dart';
 import '../../models/notification_model.dart';
 import '../../models/timetable_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Firebase schedule data source interface
 abstract class FirebaseScheduleDataSource {
@@ -46,19 +47,50 @@ abstract class FirebaseScheduleDataSource {
 
 // Implementation will be filled by the backend
 class FirebaseScheduleDataSourceImpl implements FirebaseScheduleDataSource {
-  // TO DO: Implement Firebase data source methods
-  // This will be properly implemented when Firebase integration is ready
-  
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   @override
-  Future<TimetableModel> getTimetable({
-    required String department,
-    required String section, 
-    required int semester,
-  }) async {
-    // Mock implementation for now
-    throw const ServerFailure(message: 'Firebase integration not yet implemented');
+Future<TimetableModel> getTimetable({
+  required String department,
+  required String section,
+  required int semester,
+}) async {
+  try {
+    // 🔍 1. Get first document from Original_TimeTable
+    final snapshot = await _firestore
+        .collection('Original_TimeTable')
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      throw const ServerFailure(message: 'No timetable found');
+    }
+
+    final doc = snapshot.docs.first;
+    final data = doc.data();
+
+    // 🔍 2. Extract section-specific data
+    final sectionKey = 'Section_$section'; // Ensure proper casing
+    final sectionData = data['sections'][sectionKey];
+
+    if (sectionData == null) {
+      throw ServerFailure(message: 'Section $sectionKey not found');
+    }
+
+    final timetableJson = {
+      'numberOfSections': data['numberOfSections'],
+      'semester': data['semester'],
+      'sections': {
+        sectionKey: sectionData,
+      },
+    };
+
+    return TimetableModel.fromJson(timetableJson);
+  } catch (e) {
+    throw ServerFailure(message: 'Failed to load timetable. ${e.toString()}');
   }
-  
+}
+
   @override
   Future<List<ClassActionModel>> getClassActions({
     required String timetableId,

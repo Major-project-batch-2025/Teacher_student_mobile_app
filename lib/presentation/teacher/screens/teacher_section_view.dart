@@ -138,10 +138,7 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
               const SizedBox(height: 24.0),
               
               // Timetable grid
-              TimetableGrid(
-                isEditable: true,
-                onClassTap: (classSlot) => _handleClassTap(classSlot, teacher),
-              ),
+              const TimetableGrid(),
             ],
           ),
         ),
