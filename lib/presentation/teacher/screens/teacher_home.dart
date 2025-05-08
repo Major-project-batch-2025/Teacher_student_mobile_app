@@ -1,14 +1,16 @@
 // lib/presentation/teacher/screens/teacher_home.dart
-// Purpose: Home screen for teacher users showing classes and sections
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants.dart';
 import '../../../domain/entities/teacher.dart';
+import '../../../domain/entities/user.dart'; // Add this import
 import '../../auth/providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/timetable_provider.dart';
 import '../../shared_widgets/notification_bell.dart';
+import '../widgets/teacher_personal_timetable.dart';
 import 'teacher_profile.dart';
 import 'teacher_section_view.dart';
 
@@ -20,6 +22,9 @@ class TeacherHomeScreen extends StatefulWidget {
 }
 
 class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
+  bool _isLoading = false;
+  String? _error;
+
   @override
   void initState() {
     super.initState();
@@ -30,20 +35,54 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     });
   }
   
-  // Initialize notification provider
+  // Initialize notification provider and fetch timetables for all sections
   Future<void> _initializeProviders() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
-    
-    // Get teacher user
-    if (authProvider.isLoggedIn && authProvider.isTeacher) {
-      final teacher = authProvider.user as Teacher;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
+      final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
       
-      // Fetch notifications
-      await notificationProvider.fetchNotifications(
-        userId: teacher.id,
-        isTeacher: true,
-      );
+      // Get teacher user
+      if (authProvider.isLoggedIn && authProvider.isTeacher) {
+        final teacher = authProvider.user as Teacher;
+        
+        // Fetch notifications
+        await notificationProvider.fetchNotifications(
+          userId: teacher.id,
+          isTeacher: true,
+        );
+
+        // Fetch timetables for all sections this teacher teaches
+        // We're focusing on 7th semester sections
+        final sections = ['A', 'B', 'C']; // 7th semester sections
+        final semester = 7;
+        
+        // Use teacher.department to get the department
+        final department = teacher.department;
+
+        // Fetch all section timetables
+        for (final section in sections) {
+          await timetableProvider.initialize(
+            department: department,
+            section: section,
+            semester: semester,
+          );
+        }
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _error = e.toString();
+      });
     }
   }
 
@@ -80,7 +119,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         backgroundColor: AppColors.darkBackground,
         elevation: 0,
         title: const Text(
-          'My Classes',
+          'My Schedule',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -104,114 +143,112 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _initializeProviders,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Teacher info
-              Text(
-                'Hello, ${teacher.name}',
-                style: const TextStyle(
-                  fontSize: 24.0,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+      body: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Error loading timetable: $_error',
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _initializeProviders,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _initializeProviders,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Teacher info
+                        Text(
+                          'Hello, ${teacher.name}',
+                          style: const TextStyle(
+                            fontSize: 24.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          teacher.department,
+                          style: const TextStyle(
+                            fontSize: 16.0,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 24.0),
+                        
+                        // Teacher's personal timetable
+                        const Text(
+                          'Your Weekly Schedule',
+                          style: TextStyle(
+                            fontSize: 20.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 16.0),
+                        
+                        // Personal timetable widget
+                        TeacherPersonalTimetable(teacher: teacher),
+                        
+                        const SizedBox(height: 32.0),
+                        
+                        // Sections heading
+                        const Text(
+                          'Your Sections',
+                          style: TextStyle(
+                            fontSize: 20.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 16.0),
+                        
+                        // List of sections taught
+                        _buildSectionsList(teacher),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              Text(
-                teacher.department,
-                style: const TextStyle(
-                  fontSize: 16.0,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 32.0),
-              
-              // Sections heading
-              const Text(
-                'Your Sections',
-                style: TextStyle(
-                  fontSize: 20.0,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 16.0),
-              
-              // List of sections taught
-              _buildSectionsList(teacher),
-              const SizedBox(height: 32.0),
-              
-              // Subjects heading
-              const Text(
-                'Your Subjects',
-                style: TextStyle(
-                  fontSize: 20.0,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 16.0),
-              
-              // List of subjects taught
-              _buildSubjectsList(teacher),
-            ],
-          ),
-        ),
-      ),
     );
   }
   
   // Build list of sections taught by the teacher
   Widget _buildSectionsList(Teacher teacher) {
-    final sections = teacher.allSections;
-    
-    if (sections.isEmpty) {
-      return const Center(
-        child: Text(
-          'No sections assigned',
-          style: TextStyle(
-            color: Colors.grey,
-          ),
-        ),
-      );
-    }
+    // For this example, we're focusing on 7th semester sections
+    final sections = ['A', 'B', 'C'];
     
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.5,
+        crossAxisCount: 3,
+        childAspectRatio: 1.0,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
       itemCount: sections.length,
       itemBuilder: (context, index) {
         final section = sections[index];
-        return _buildSectionCard(context, section);
+        return _buildSectionCard(context, section, teacher); // Pass teacher here
       },
     );
   }
   
   // Build a section card
-  Widget _buildSectionCard(BuildContext context, String section) {
-    // Find semester for this section
-    final teacher = Provider.of<AuthProvider>(context).user as Teacher;
-    int? semester;
-    String? department;
-    
-    for (final assignment in teacher.teachingAssignments) {
-      if (assignment.sections.contains(section)) {
-        semester = assignment.semester;
-        department = assignment.departmentCode;
-        break;
-      }
-    }
-    
+  Widget _buildSectionCard(BuildContext context, String section, Teacher teacher) {
     return GestureDetector(
       onTap: () {
         // Navigate to section timetable view
@@ -220,8 +257,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           MaterialPageRoute(
             builder: (context) => TeacherSectionViewScreen(
               section: section,
-              semester: semester ?? 0,
-              department: department ?? '',
+              semester: 7, // Focus on 7th semester
+              department: teacher.department, // Use teacher.department directly here
             ),
           ),
         );
@@ -241,96 +278,23 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             ),
             const SizedBox(height: 8.0),
             Text(
-              section,
+              'Section $section',
               style: const TextStyle(
                 fontSize: 18.0,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
-            if (semester != null)
-              Text(
-                'Semester $semester',
-                style: const TextStyle(
-                  fontSize: 14.0,
-                  color: Colors.grey,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  // Build list of subjects taught by the teacher
-  Widget _buildSubjectsList(Teacher teacher) {
-    // Get unique subjects
-    final subjects = <String>{};
-    for (final assignment in teacher.teachingAssignments) {
-      subjects.add(assignment.subject);
-    }
-    
-    if (subjects.isEmpty) {
-      return const Center(
-        child: Text(
-          'No subjects assigned',
-          style: TextStyle(
-            color: Colors.grey,
-          ),
-        ),
-      );
-    }
-    
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: subjects.length,
-      itemBuilder: (context, index) {
-        final subject = subjects.elementAt(index);
-        
-        // Find sections for this subject
-        final sections = <String>[];
-        for (final assignment in teacher.teachingAssignments) {
-          if (assignment.subject == subject) {
-            sections.addAll(assignment.sections);
-          }
-        }
-        
-        return Card(
-          color: Colors.grey.shade800,
-          margin: const EdgeInsets.only(bottom: 8.0),
-          child: ListTile(
-            title: Text(
-              subject,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            subtitle: Text(
-              'Taught in ${sections.join(", ")}',
-              style: const TextStyle(
+            const Text(
+              '7th Semester',
+              style: TextStyle(
+                fontSize: 14.0,
                 color: Colors.grey,
               ),
             ),
-            leading: const CircleAvatar(
-              backgroundColor: AppColors.primary,
-              child: Icon(
-                Icons.book,
-                color: Colors.white,
-              ),
-            ),
-            trailing: const Icon(
-              Icons.arrow_forward_ios,
-              color: Colors.grey,
-              size: 16.0,
-            ),
-            onTap: () {
-              // TO DO: Navigate to subject details
-            },
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,3 +1,5 @@
+// lib/presentation/providers/timetable_provider.dart
+
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/models/timetable_model.dart';
@@ -11,6 +13,9 @@ class TimetableProvider extends ChangeNotifier {
   // Section-specific nested timetable (e.g., Section_A)
   Map<String, Map<String, ClassSlotModel>>? _sectionSchedule;
   Map<String, Map<String, ClassSlotModel>>? get sectionSchedule => _sectionSchedule;
+
+  // Store multiple section schedules
+  final Map<String, Map<String, Map<String, ClassSlotModel>>> _sectionSchedules = {};
 
   DateTime _selectedDate = DateTime.now();
   DateTime get selectedDate => _selectedDate;
@@ -38,7 +43,10 @@ class TimetableProvider extends ChangeNotifier {
         semester: semester,
       );
 
+      // Store the schedule for the selected section
       _sectionSchedule = timetable.sections['Section_$section'];
+      // Also store in the map of all sections for teacher's view
+      _sectionSchedules['Section_$section'] = timetable.sections['Section_$section'] ?? {};
 
       if (_sectionSchedule == null) {
         throw Exception('No schedule found for Section_$section');
@@ -72,6 +80,11 @@ class TimetableProvider extends ChangeNotifier {
     });
 
     return result;
+  }
+
+  // Get schedule for a specific section
+  Map<String, Map<String, ClassSlotModel>>? getSectionSchedule(String sectionKey) {
+    return _sectionSchedules[sectionKey];
   }
 
   String _weekdayToFirestoreKey(int weekday) {
