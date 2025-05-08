@@ -91,15 +91,16 @@ class AuthProvider extends ChangeNotifier {
         final doc = snapshot.docs.first;
         final data = doc.data();
 
-        final section = data['section'] ?? '';
-        final semester = data['semester'] ?? 0;
+        // Extract section and semester with careful null handling
+        final section = data['section']?.toString() ?? 'A';
+        final semester = int.tryParse(data['semester']?.toString() ?? '1') ?? 1;
 
         _user = Student(
           id: doc.id,
-          name: data['name'],
-          email: data['email'],
-          rollNumber: data['usn'],
-          department: data['department'],
+          name: data['name']?.toString() ?? 'Student',
+          email: data['email']?.toString() ?? '',
+          rollNumber: data['usn']?.toString() ?? '',
+          department: data['department']?.toString() ?? 'Unknown',
           section: section,
           semester: semester,
         );
@@ -147,6 +148,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Notice we're querying the "Teachers" collection (as seen in your Firebase screenshot)
       final snapshot = await FirebaseFirestore.instance
           .collection('Teachers')
           .where('email', isEqualTo: email)
@@ -158,22 +160,42 @@ class AuthProvider extends ChangeNotifier {
         final doc = snapshot.docs.first;
         final data = doc.data();
 
-        final List<dynamic> assignmentsRaw = data['teachingAssignments'] ?? [];
-        final List<TeachingAssignment> teachingAssignments = assignmentsRaw.map((assignment) {
-          return TeachingAssignment(
-            subject: assignment['subject'],
-            departmentCode: assignment['departmentCode'],
-            sections: List<String>.from(assignment['sections'] ?? []),
-            semester: int.tryParse(assignment['semester'].toString().trim()) ?? 0,
-          );
-        }).toList();
+        // Parse assignment data - this matches the structure shown in your Firebase screenshot
+        final List<TeachingAssignment> teachingAssignments = [];
+        
+        if (data['assignment'] != null) {
+          // Handle assignments as they appear in your database
+          if (data['assignment'] is List) {
+            final assignmentList = data['assignment'] as List;
+            
+            for (final item in assignmentList) {
+              if (item is Map<String, dynamic>) {
+                // Extract sections as a list
+                List<String> sections = [];
+                if (item['sections'] is List) {
+                  sections = List<String>.from(item['sections']);
+                }
+                
+                teachingAssignments.add(TeachingAssignment(
+                  subject: item['subject']?.toString() ?? 'Unknown',
+                  departmentCode: data['department']?.toString() ?? 'Unknown',
+                  sections: sections,
+                  semester: item['semester'] != null 
+                      ? int.tryParse(item['semester'].toString()) ?? 0 
+                      : 0,
+                ));
+              }
+            }
+          }
+        }
 
+        // Create teacher model with careful null handling for all fields
         _user = Teacher(
           id: doc.id,
-          name: data['name'],
-          email: data['email'],
-          employeeId: data['employeeId'],
-          department: data['department'],
+          name: data['name']?.toString() ?? 'Unknown',
+          email: data['email']?.toString() ?? '',
+          employeeId: data['tId']?.toString() ?? '',  // Notice this is 'tId' in your DB, not 'employeeId'
+          department: data['department']?.toString() ?? 'Unknown',
           teachingAssignments: teachingAssignments,
         );
 

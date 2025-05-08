@@ -44,12 +44,13 @@ class TimetableProvider extends ChangeNotifier {
       );
 
       // Store the schedule for the selected section
-      _sectionSchedule = timetable.sections['Section_$section'];
-      // Also store in the map of all sections for teacher's view
-      _sectionSchedules['Section_$section'] = timetable.sections['Section_$section'] ?? {};
-
-      if (_sectionSchedule == null) {
-        throw Exception('No schedule found for Section_$section');
+      final sectionKey = 'Section_$section';
+      if (timetable.sections.containsKey(sectionKey)) {
+        _sectionSchedule = timetable.sections[sectionKey];
+        // Also store in the map of all sections for teacher's view
+        _sectionSchedules[sectionKey] = timetable.sections[sectionKey] ?? {};
+      } else {
+        throw Exception('No schedule found for $sectionKey');
       }
 
       _isLoading = false;

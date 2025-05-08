@@ -1,3 +1,5 @@
+// lib/data/models/timetable_model.dart
+
 import '../../domain/entities/timetable.dart';
 
 class ClassSlotModel {
@@ -36,17 +38,30 @@ class TimetableModel {
   });
 
   factory TimetableModel.fromJson(Map<String, dynamic> json) {
-    final rawSections = json['sections'] as Map<String, dynamic>;
+    // Safely extract sections from JSON
+    final rawSections = json['sections'] as Map<String, dynamic>? ?? {};
 
     final parsedSections = rawSections.map((sectionKey, sectionValue) {
-      final scheduleMap =
-          (sectionValue['schedule'] as Map<String, dynamic>).map(
+      // Handle missing or malformed schedule
+      final schedule = sectionValue['schedule'] as Map<String, dynamic>? ?? {};
+      
+      final scheduleMap = schedule.map(
         (timeSlotKey, timeSlotValue) {
+          // Ensure timeSlotValue is Map<String, dynamic>
+          final timeSlotMap = timeSlotValue is Map<String, dynamic> 
+              ? timeSlotValue 
+              : <String, dynamic>{};
+              
           return MapEntry(
             timeSlotKey,
-            (timeSlotValue as Map<String, dynamic>).map(
+            timeSlotMap.map(
               (dayKey, dayValue) {
-                return MapEntry(dayKey, ClassSlotModel.fromJson(dayValue));
+                return MapEntry(
+                  dayKey, 
+                  dayValue is Map<String, dynamic> 
+                      ? ClassSlotModel.fromJson(dayValue)
+                      : ClassSlotModel(course: 'Free', teacher: '')
+                );
               },
             ),
           );
@@ -57,8 +72,8 @@ class TimetableModel {
     });
 
     return TimetableModel(
-      numberOfSections: json['numberOfSections'],
-      semester: json['semester'],
+      numberOfSections: json['numberOfSections'] ?? 1,
+      semester: json['semester'] ?? 0,
       sections: parsedSections,
     );
   }
@@ -80,7 +95,7 @@ class TimetableModel {
     };
   }
 
-  // ✅ Converts TimetableModel to domain-level Timetable entity
+  // Converts TimetableModel to domain-level Timetable entity
   Timetable toEntity({
     required String sectionKey,
     required String department,
@@ -92,8 +107,8 @@ class TimetableModel {
     if (schedule != null) {
       schedule.forEach((timeSlot, dayMap) {
         final timeParts = timeSlot.split('-');
-        final startTime = timeParts[0].trim();
-        final endTime = timeParts[1].trim();
+        final startTime = timeParts.length > 0 ? timeParts[0].trim() : '00:00';
+        final endTime = timeParts.length > 1 ? timeParts[1].trim() : '00:00';
 
         dayMap.forEach((dayName, slotModel) {
           final slot = ClassSlot(
@@ -116,7 +131,7 @@ class TimetableModel {
     return Timetable(
       id: 'timetable_${sectionKey}_${semester}',
       department: department,
-      section: sectionKey,
+      section: sectionKey.replaceAll('Section_', ''),
       semester: semester,
       validFrom: DateTime.now(),
       validUntil: DateTime.now().add(const Duration(days: 180)),
