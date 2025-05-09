@@ -1,4 +1,6 @@
 // lib/presentation/auth/providers/auth_provider.dart
+// Purpose: Provider for authentication state management
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../domain/entities/student.dart';
@@ -81,7 +83,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       // Query Firestore for student document matching USN and DOB
       final snapshot = await FirebaseFirestore.instance
-          .collection('Students')
+          .collection('Students')  // Note: Using 'Students' collection instead of 'Student'
           .where('usn', isEqualTo: usn.toUpperCase())
           .where('dob', isEqualTo: dob)
           .get();
@@ -99,7 +101,7 @@ class AuthProvider extends ChangeNotifier {
           id: doc.id,
           name: data['name']?.toString() ?? 'Student',
           email: data['email']?.toString() ?? '',
-          rollNumber: data['usn']?.toString() ?? '',
+          rollNumber: data['usn']?.toString() ?? '',  // Note: Using 'usn' field instead of 'rollNumber'
           department: data['department']?.toString() ?? 'Unknown',
           section: section,
           semester: semester,
@@ -148,9 +150,9 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Notice we're querying the "Teachers" collection (as seen in your Firebase screenshot)
+      // Query Firestore for teacher document matching email and password
       final snapshot = await FirebaseFirestore.instance
-          .collection('Teachers')
+          .collection('Teachers')  // Note: Using 'Teachers' collection instead of 'Teacher'
           .where('email', isEqualTo: email)
           .where('password', isEqualTo: password)
           .limit(1)
@@ -163,7 +165,7 @@ class AuthProvider extends ChangeNotifier {
         // Parse assignment data - this matches the structure shown in your Firebase screenshot
         final List<TeachingAssignment> teachingAssignments = [];
         
-        if (data['assignment'] != null) {
+        if (data['assignment'] != null) {  // Note: Using 'assignment' field instead of 'teachingAssignments'
           // Handle assignments as they appear in your database
           if (data['assignment'] is List) {
             final assignmentList = data['assignment'] as List;
@@ -194,7 +196,7 @@ class AuthProvider extends ChangeNotifier {
           id: doc.id,
           name: data['name']?.toString() ?? 'Unknown',
           email: data['email']?.toString() ?? '',
-          employeeId: data['tId']?.toString() ?? '',  
+          employeeId: data['tId']?.toString() ?? '',  // Note: Using 'tId' field instead of 'employeeId'
           department: data['department']?.toString() ?? 'Unknown',
           teachingAssignments: teachingAssignments,
         );

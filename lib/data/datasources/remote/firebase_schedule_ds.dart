@@ -1,4 +1,5 @@
 // lib/data/datasources/remote/firebase_schedule_ds.dart
+// Purpose: Remote data source implementation using Firebase
 
 import '../../../core/errors/failures.dart';
 import '../../models/class_action_model.dart';
@@ -92,20 +93,20 @@ class FirebaseScheduleDataSourceImpl implements FirebaseScheduleDataSource {
   }
   
   // Helper method to process timetable document
+  // This handles the specific structure of the timetable in Firestore
   TimetableModel _processTimeTableDocument(DocumentSnapshot doc, String section) {
-    final data = doc.data() as Map<String, dynamic>;
+    // Get document data safely
+    final data = doc.data() as Map<String, dynamic>? ?? {};
     final String sectionKey = 'Section_$section';
     
     // Create a standard format expected by TimetableModel
     // This will hold all days and their time slots
-    final Map<String, Map<String, Map<String, ClassSlotModel>>> sections = {};
-    
-    // Initialize the section's schedule
     final Map<String, Map<String, ClassSlotModel>> schedule = {};
     
-    // Loop through each day in the subcollection structure
+    // Loop through each day in the structure
     final days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     for (final day in days) {
+      // Skip if this day doesn't exist in data or isn't a Map
       if (data[day] == null || !(data[day] is Map)) continue;
       
       final dayData = data[day] as Map<String, dynamic>;
@@ -116,7 +117,7 @@ class FirebaseScheduleDataSourceImpl implements FirebaseScheduleDataSource {
           // Format the day name properly for our model (first letter capitalized)
           final String dayName = day[0].toUpperCase() + day.substring(1);
           
-          // Create class slot from the data
+          // Create class slot from the data with null safety
           final classSlot = ClassSlotModel(
             course: slotData['course'] as String? ?? 'Free',
             teacher: slotData['teacher'] as String? ?? '',
@@ -133,10 +134,7 @@ class FirebaseScheduleDataSourceImpl implements FirebaseScheduleDataSource {
       });
     }
     
-    // Add the section's schedule to our sections object
-    sections[sectionKey] = schedule;
-    
-    // Create final timetable structure
+    // Create final timetable structure for our model
     final timetableJson = {
       'numberOfSections': 1, // Default value
       'semester': data['semester'] ?? 0,

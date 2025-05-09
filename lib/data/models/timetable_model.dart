@@ -1,4 +1,5 @@
 // lib/data/models/timetable_model.dart
+// Purpose: Data model for timetable with JSON serialization
 
 import '../../domain/entities/timetable.dart';
 
@@ -38,12 +39,14 @@ class TimetableModel {
   });
 
   factory TimetableModel.fromJson(Map<String, dynamic> json) {
-    // Safely extract sections from JSON
+    // Safely extract sections from JSON with null-safety
     final rawSections = json['sections'] as Map<String, dynamic>? ?? {};
 
     final parsedSections = rawSections.map((sectionKey, sectionValue) {
       // Handle missing or malformed schedule
-      final schedule = sectionValue['schedule'] as Map<String, dynamic>? ?? {};
+      final Map<String, dynamic> sectionMap = 
+          sectionValue is Map<String, dynamic> ? sectionValue : {};
+      final schedule = sectionMap['schedule'] as Map<String, dynamic>? ?? {};
       
       final scheduleMap = schedule.map(
         (timeSlotKey, timeSlotValue) {
@@ -60,7 +63,7 @@ class TimetableModel {
                   dayKey, 
                   dayValue is Map<String, dynamic> 
                       ? ClassSlotModel.fromJson(dayValue)
-                      : ClassSlotModel(course: 'Free', teacher: '')
+                      : const ClassSlotModel(course: 'Free', teacher: '')
                 );
               },
             ),
@@ -106,8 +109,9 @@ class TimetableModel {
     final schedule = sections[sectionKey];
     if (schedule != null) {
       schedule.forEach((timeSlot, dayMap) {
+        // Safely parse time slot parts with null checks
         final timeParts = timeSlot.split('-');
-        final startTime = timeParts.length > 0 ? timeParts[0].trim() : '00:00';
+        final startTime = timeParts.isNotEmpty ? timeParts[0].trim() : '00:00';
         final endTime = timeParts.length > 1 ? timeParts[1].trim() : '00:00';
 
         dayMap.forEach((dayName, slotModel) {
