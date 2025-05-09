@@ -5,25 +5,26 @@ import 'package:flutter/material.dart';
 
 // Colors from colors.dart
 class AppColors {
-  static const Color primary = Color(0xFF2196F3);
-  static const Color secondary = Color(0xFF03A9F4);
-  static const Color accent = Color(0xFF00BCD4);
-  static const Color background = Color(0xFFF5F5F5);
-  static const Color cardBackground = Colors.white;
-  static const Color textPrimary = Color(0xFF212121);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color divider = Color(0xFFBDBDBD);
+  static const Color primary = Color(0xFF4A90E2); // Softer blue
+  static const Color secondary = Color(0xFF50E3C2); // Soft teal green
+  static const Color accent = Color(0xFFB388FF); // Lavender accent
+  static const Color background = Color(0xFFF1F5F9); // Light muted gray-blue
+  static const Color cardBackground = Color(0xFFFDFDFE); // Very light cool off-white
+  static const Color textPrimary = Color(0xFF263238); // Dark slate instead of black
+  static const Color textSecondary = Color(0xFF607D8B); // Blue-gray
+  static const Color divider = Color(0xFFCFD8DC); // Muted divider
   
-  // Additional colors based on app design in provided images
-  static const Color darkBackground = Color(0xFF212121);
-  static const Color error = Colors.red;
-  static const Color success = Colors.green;
-  static const Color warning = Colors.orange;
-  static const Color classBlue = Color(0xFF2196F3);  // For blue class cards
-  static const Color classRed = Colors.red;          // For red class cards
-  static const Color classGreen = Colors.green;      // For green class cards
-  static const Color profileBlue = Color(0xFF2196F3); // For profile circle
+  // Additional colors based on app design
+  static const Color darkBackground = Color(0xFF37474F); // Blue-gray dark mode
+  static const Color error = Color(0xFFE53935); // Rich red
+  static const Color success = Color(0xFF43A047); // Muted green
+  static const Color warning = Color(0xFFFFA726); // Muted orange
+  static const Color classBlue = Color(0xFF42A5F5); // Mid blue for classes
+  static const Color classRed = Color(0xFFEF5350); // Soft red
+  static const Color classGreen = Color(0xFF66BB6A); // Pastel green
+  static const Color profileBlue = Color(0xFF4FC3F7); // Light blue for profile circle
 }
+
 
 // Text Styles
 class AppTextStyles {
@@ -32,35 +33,35 @@ class AppTextStyles {
     fontWeight: FontWeight.bold,
     color: AppColors.textPrimary,
   );
-  
+
   static const TextStyle headerMedium = TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.bold,
     color: AppColors.textPrimary,
   );
-  
+
   static const TextStyle title = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
   );
-  
+
   static const TextStyle subtitle = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w500,
     color: AppColors.textPrimary,
   );
-  
+
   static const TextStyle body = TextStyle(
     fontSize: 14,
     color: AppColors.textPrimary,
   );
-  
+
   static const TextStyle caption = TextStyle(
     fontSize: 12,
     color: AppColors.textSecondary,
   );
-  
+
   static const TextStyle buttonText = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
@@ -76,13 +77,13 @@ class AppSpacing {
   static const double lg = 24.0;
   static const double xl = 32.0;
   static const double xxl = 48.0;
-  
+
   // Padding
   static const EdgeInsets paddingXS = EdgeInsets.all(xs);
   static const EdgeInsets paddingSM = EdgeInsets.all(sm);
   static const EdgeInsets paddingMD = EdgeInsets.all(md);
   static const EdgeInsets paddingLG = EdgeInsets.all(lg);
-  
+
   // Border Radius
   static const double borderRadiusSM = 4.0;
   static const double borderRadiusMD = 8.0;
@@ -102,7 +103,7 @@ class AppAssets {
 class AppStrings {
   // App Name
   static const String appName = 'Student Timetable';
-  
+
   // Auth Screens
   static const String loginAsStudent = 'Login as Student';
   static const String loginAsTeacher = 'Login as Teacher';
@@ -110,15 +111,22 @@ class AppStrings {
   static const String password = 'Password';
   static const String login = 'Login';
   static const String logout = 'Logout';
-  
+
   // Timetable
   static const String yourSchedule = 'Your Schedule';
   static const String profile = 'Profile';
   static const String notifications = 'Notifications';
-  
+
   // Days of week
-  static const List<String> weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  
+  static const List<String> weekdays = [
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+  ];
+
   // Class Actions
   static const String cancelClass = 'Cancel Class';
   static const String rescheduleClass = 'Reschedule Class';

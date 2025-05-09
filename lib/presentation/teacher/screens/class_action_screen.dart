@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants.dart';
 import '../../../domain/entities/class_action.dart';
 import '../../providers/timetable_provider.dart';
-import '../../../domain/entities/timetable.dart';
+// import '../../../domain/entities/timetable.dart';
 
 class ClassActionScreen extends StatelessWidget {
   final String section;
@@ -40,7 +40,7 @@ class ClassActionScreen extends StatelessWidget {
             );
           }
           
-          final actions = <ClassAction>[]; // TODO: Replace with real actions when backend is ready
+          final actions = <ClassAction>[]; // TO DO: Replace with real actions when backend is ready
 
           
           if (actions.isEmpty) {

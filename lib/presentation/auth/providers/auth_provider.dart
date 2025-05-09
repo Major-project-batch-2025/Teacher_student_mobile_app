@@ -194,7 +194,7 @@ class AuthProvider extends ChangeNotifier {
           id: doc.id,
           name: data['name']?.toString() ?? 'Unknown',
           email: data['email']?.toString() ?? '',
-          employeeId: data['tId']?.toString() ?? '',  // Notice this is 'tId' in your DB, not 'employeeId'
+          employeeId: data['tId']?.toString() ?? '',  
           department: data['department']?.toString() ?? 'Unknown',
           teachingAssignments: teachingAssignments,
         );
