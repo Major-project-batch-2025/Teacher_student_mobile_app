@@ -1,21 +1,17 @@
-// lib/presentation/teacher/widgets/teacher_personal_timetable.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants.dart';
-// import '../../../core/utils/date_helpers.dart';
 import '../../../domain/entities/teacher.dart';
 import '../../../data/models/timetable_model.dart';
 import '../../providers/timetable_provider.dart';
 
-// Move ClassInfo outside the state class to make it globally accessible
 class ClassInfo {
   final String subject;
   final String section;
   final String time;
   final ClassSlotModel slotModel;
-  
+
   ClassInfo({
     required this.subject,
     required this.section,
@@ -27,13 +23,11 @@ class ClassInfo {
 class TeacherPersonalTimetable extends StatefulWidget {
   final Teacher teacher;
 
-  const TeacherPersonalTimetable({
-    super.key,
-    required this.teacher,
-  });
+  const TeacherPersonalTimetable({super.key, required this.teacher});
 
   @override
-  State<TeacherPersonalTimetable> createState() => _TeacherPersonalTimetableState();
+  State<TeacherPersonalTimetable> createState() =>
+      _TeacherPersonalTimetableState();
 }
 
 class _TeacherPersonalTimetableState extends State<TeacherPersonalTimetable> {
@@ -42,18 +36,10 @@ class _TeacherPersonalTimetableState extends State<TeacherPersonalTimetable> {
   @override
   void initState() {
     super.initState();
-    // Set the default selected day to today or Monday if weekend
     final now = DateTime.now();
-    int dayIndex = now.weekday - 1; // 0 = Monday, 6 = Sunday
-    
-    // If it's Sunday, default to Monday
-    if (dayIndex > 5) {
-      dayIndex = 0;
-    }
-    
-    setState(() {
-      _selectedDayIndex = dayIndex;
-    });
+    int dayIndex = now.weekday - 1;
+    if (dayIndex > 5) dayIndex = 0;
+    _selectedDayIndex = dayIndex;
   }
 
   @override
@@ -61,7 +47,7 @@ class _TeacherPersonalTimetableState extends State<TeacherPersonalTimetable> {
     return Column(
       children: [
         _buildDaySelector(),
-        const SizedBox(height: 16.0),
+        const SizedBox(height: 16),
         _buildClassList(),
       ],
     );
@@ -81,9 +67,7 @@ class _TeacherPersonalTimetableState extends State<TeacherPersonalTimetable> {
           final isSelected = index == _selectedDayIndex;
           return GestureDetector(
             onTap: () {
-              setState(() {
-                _selectedDayIndex = index;
-              });
+              setState(() => _selectedDayIndex = index);
             },
             child: Container(
               width: 70.0,
@@ -97,8 +81,7 @@ class _TeacherPersonalTimetableState extends State<TeacherPersonalTimetable> {
                   AppStrings.weekdays[index],
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.grey,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ),
@@ -110,23 +93,54 @@ class _TeacherPersonalTimetableState extends State<TeacherPersonalTimetable> {
   }
 
   Widget _buildClassList() {
-    final timetableProvider = Provider.of<TimetableProvider>(context);
-    
-    // Get the teacher's subjects for 7th semester
-    final teacherSubjects = <String>[];
+    final provider = Provider.of<TimetableProvider>(context);
+    final Map<String, List<String>> sectionSubjects = {};
+
     for (final assignment in widget.teacher.teachingAssignments) {
-      if (assignment.semester == 7) {
-        teacherSubjects.add(assignment.subject);
+      if (assignment.semester != 7) continue;
+
+      for (final section in assignment.sections) {
+        sectionSubjects.putIfAbsent(section, () => []);
+        sectionSubjects[section]!.add(assignment.subject);
       }
     }
-    
-    // Get classes for all sections on the selected day for this teacher's subjects
-    final classes = _getTeacherClasses(
-      timetableProvider,
-      _selectedDayIndex,
-      teacherSubjects,
-    );
-    
+
+    final dayName = _dayIndexToName(_selectedDayIndex);
+    final classes = <ClassInfo>[];
+
+    for (final entry in sectionSubjects.entries) {
+      final section = entry.key;
+      final subjects = entry.value;
+      final sectionKey = section.trim(); // Normalized, if needed
+
+      final schedule = provider.getSectionSchedule(sectionKey);
+      if (schedule == null) {
+        debugPrint('⚠️ No schedule found for $sectionKey');
+        continue;
+      }
+
+      final dayMap = schedule[dayName];
+      if (dayMap != null) {
+        dayMap.forEach((time, slot) {
+          debugPrint('🔍 Checking section $section at $time on $dayName');
+          debugPrint('→ Slot: ${slot.course} (${slot.teacher})');
+          debugPrint('→ Teacher teaches: $subjects');
+
+          if (slot != null &&
+              subjects
+                  .map((s) => s.trim().toLowerCase())
+                  .contains(slot.course.trim().toLowerCase())) {
+            classes.add(ClassInfo(
+              subject: slot.course,
+              section: section,
+              time: time,
+              slotModel: slot,
+            ));
+          }
+        });
+      }
+    }
+
     if (classes.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(32.0),
@@ -141,83 +155,21 @@ class _TeacherPersonalTimetableState extends State<TeacherPersonalTimetable> {
         ),
       );
     }
-    
-    // Sort classes by time
+
     classes.sort((a, b) {
-      final timeA = _convertTimeToMinutes(a.time.split('-').first.trim());
-      final timeB = _convertTimeToMinutes(b.time.split('-').first.trim());
-      return timeA.compareTo(timeB);
+      final aTime = _convertTimeToMinutes(a.time.split('-')[0].trim());
+      final bTime = _convertTimeToMinutes(b.time.split('-')[0].trim());
+      return aTime.compareTo(bTime);
     });
-    
+
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: classes.length,
-      itemBuilder: (context, index) {
-        final classInfo = classes[index];
-        return _buildClassCard(classInfo);
-      },
+      itemBuilder: (_, index) => _buildClassCard(classes[index]),
     );
   }
-  
-  // Get teacher's classes across all sections for the selected day
-  List<ClassInfo> _getTeacherClasses(
-    TimetableProvider provider,
-    int dayOfWeek,
-    List<String> teacherSubjects,
-  ) {
-    final classes = <ClassInfo>[];
-    final sections = ['A', 'B', 'C']; // 7th semester sections
-    
-    for (final section in sections) {
-      // Get schedule for this section
-      final sectionKey = 'Section_$section';
-      final sectionSchedule = provider.getSectionSchedule(sectionKey);
-      if (sectionSchedule == null) continue;
-      
-      // Convert day index to Firebase day name (0 = Monday)
-      final dayName = _dayIndexToName(dayOfWeek);
-      
-      // Check all time slots for this day
-      sectionSchedule.forEach((timeSlot, dayMap) {
-        if (dayMap.containsKey(dayName)) {
-          final classSlot = dayMap[dayName];
-          
-          // Check if this is a class taught by this teacher and the slot exists
-          if (classSlot != null && teacherSubjects.contains(classSlot.course)) {
-            classes.add(
-              ClassInfo(
-                subject: classSlot.course,
-                section: section,
-                time: timeSlot, // timeSlot is the key from forEach, so it's non-null
-                slotModel: classSlot,
-              ),
-            );
-          }
-        }
-      });
-    }
-    
-    return classes;
-  }
-  
-  // Convert day index to Firebase day name
-  String _dayIndexToName(int dayIndex) {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[dayIndex % days.length];
-  }
-  
-  // Convert time string to minutes for sorting
-  int _convertTimeToMinutes(String timeStr) {
-    final parts = timeStr.split(':');
-    if (parts.length != 2) return 0;
-    
-    final hour = int.tryParse(parts[0]) ?? 0;
-    final minute = int.tryParse(parts[1]) ?? 0;
-    return hour * 60 + minute;
-  }
-  
-  // Build class card for personal timetable
+
   Widget _buildClassCard(ClassInfo classInfo) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
@@ -240,16 +192,13 @@ class _TeacherPersonalTimetableState extends State<TeacherPersonalTimetable> {
                 Text(classInfo.time, style: const TextStyle(color: Colors.grey)),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0,
-                    vertical: 2.0,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
                   decoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(4.0),
                   ),
                   child: Text(
-                    'Section ${classInfo.section}',
+                    classInfo.section,
                     style: const TextStyle(
                       color: AppColors.classBlue,
                       fontWeight: FontWeight.bold,
@@ -284,11 +233,21 @@ class _TeacherPersonalTimetableState extends State<TeacherPersonalTimetable> {
       ),
     );
   }
-  
-  // Helper to get a room number (just for UI demonstration)
+
+  String _dayIndexToName(int index) {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days[index % 6];
+  }
+
+  int _convertTimeToMinutes(String timeStr) {
+    final parts = timeStr.split(':');
+    if (parts.length != 2) return 0;
+    final hour = int.tryParse(parts[0]) ?? 0;
+    final minute = int.tryParse(parts[1]) ?? 0;
+    return hour * 60 + minute;
+  }
+
   String _getDummyRoomNumber(ClassInfo classInfo) {
-    // In a real app, this would come from your database
-    // For now, we'll generate consistent room numbers based on section and subject
     final sectionValue = classInfo.section.codeUnitAt(0) - 'A'.codeUnitAt(0);
     final hash = classInfo.subject.length + sectionValue;
     return '${100 + hash}';

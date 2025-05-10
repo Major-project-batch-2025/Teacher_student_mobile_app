@@ -1,6 +1,3 @@
-// lib/presentation/student/screens/student_home.dart
-// Purpose: Home screen for student users showing their timetable
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -21,34 +18,36 @@ class StudentHomeScreen extends StatefulWidget {
 }
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
+  bool _initialized = false;
+
   @override
   void initState() {
     super.initState();
-    
-    // Initialize providers after build completes
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeProviders();
+      if (!_initialized) {
+        _initializeProviders();
+        _initialized = true;
+      }
     });
   }
-  
-  // Initialize timetable and notification providers
+
   Future<void> _initializeProviders() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
     final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
-    
-    // Get student user
+
     if (authProvider.isLoggedIn && authProvider.isStudent) {
       final student = authProvider.user as Student;
-      
-      // Initialize timetable
+
       await timetableProvider.initialize(
         department: student.department,
         section: student.section,
         semester: student.semester,
       );
-      
-      // Fetch notifications
+
+      if (!mounted) return;
+
       await notificationProvider.fetchNotifications(
         userId: student.id,
         isTeacher: false,
@@ -59,10 +58,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    
-    // Safety check to ensure user is logged in and is a student
+
     if (!authProvider.isLoggedIn || !authProvider.isStudent) {
-      // Handle case where user is not logged in or not a student
       return Scaffold(
         body: Center(
           child: Column(
@@ -80,9 +77,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         ),
       );
     }
-    
+
     final student = authProvider.user as Student;
-    
+
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
@@ -90,16 +87,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         elevation: 0,
         title: Text(
           AppStrings.yourSchedule,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
-          // Notification bell
           const NotificationBell(),
-          
-          // Profile button
           IconButton(
             icon: const Icon(Icons.person),
             onPressed: () {
@@ -121,7 +115,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Student info
               Text(
                 'Hello, ${student.name}',
                 style: const TextStyle(
@@ -138,8 +131,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 ),
               ),
               const SizedBox(height: 24.0),
-              
-              // Timetable grid
               const TimetableGrid(),
             ],
           ),

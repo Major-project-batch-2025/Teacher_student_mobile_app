@@ -1,5 +1,3 @@
-// lib/presentation/teacher/screens/teacher_home.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -26,14 +24,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   @override
   void initState() {
     super.initState();
-    
-    // Initialize providers after build completes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeProviders();
     });
   }
-  
-  // Initialize notification provider and fetch timetables for all sections
+
   Future<void> _initializeProviders() async {
     setState(() {
       _isLoading = true;
@@ -44,30 +39,24 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
       final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
-      
-      // Get teacher user
+
       if (authProvider.isLoggedIn && authProvider.isTeacher) {
         final teacher = authProvider.user as Teacher;
-        
-        // Fetch notifications
+
         await notificationProvider.fetchNotifications(
           userId: teacher.id,
           isTeacher: true,
         );
 
-        // Fetch timetables for all sections this teacher teaches
-        // We're focusing on 7th semester sections
-        final sections = ['A', 'B', 'C']; // 7th semester sections
-        final semester = 7;
-        final department = teacher.department;
-
-        // Fetch all section timetables
-        for (final section in sections) {
-          await timetableProvider.initialize(
-            department: department,
-            section: section,
-            semester: semester,
-          );
+        // 📌 Dynamically initialize timetables based on assignments
+        for (final assignment in teacher.teachingAssignments) {
+          for (final section in assignment.sections) {
+            await timetableProvider.initialize(
+              department: assignment.departmentCode,
+              section: section,
+              semester: assignment.semester,
+            );
+          }
         }
       }
 
@@ -85,10 +74,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    
-    // Safety check to ensure user is logged in and is a teacher
+
     if (!authProvider.isLoggedIn || !authProvider.isTeacher) {
-      // Handle case where user is not logged in or not a teacher
       return Scaffold(
         body: Center(
           child: Column(
@@ -106,9 +93,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         ),
       );
     }
-    
+
     final teacher = authProvider.user as Teacher;
-    
+
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
@@ -122,10 +109,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           ),
         ),
         actions: [
-          // Notification bell
           const NotificationBell(isTeacher: true),
-          
-          // Profile button
           IconButton(
             icon: const Icon(Icons.person),
             onPressed: () {
@@ -139,7 +123,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           ),
         ],
       ),
-      body: _isLoading 
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(
@@ -167,7 +151,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Teacher info
                         Text(
                           'Hello, ${teacher.name}',
                           style: const TextStyle(
@@ -184,8 +167,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 24.0),
-                        
-                        // Teacher's personal timetable
                         const Text(
                           'Your Weekly Schedule',
                           style: TextStyle(
@@ -195,8 +176,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 16.0),
-                        
-                        // Personal timetable widget
                         TeacherPersonalTimetable(teacher: teacher),
                       ],
                     ),

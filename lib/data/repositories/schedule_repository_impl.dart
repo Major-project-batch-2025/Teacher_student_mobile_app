@@ -20,53 +20,50 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
     required this.localDataSource,
   });
 
-  @override
-  Future<Either<Failure, Timetable>> getTimetable({
-    required String department,
-    required String section,
-    required int semester,
-  }) async {
+@override
+Future<Either<Failure, Timetable>> getTimetable({
+  required String department,
+  required String section,
+  required int semester,
+}) async {
+  try {
+    final remoteTimetable = await remoteDataSource.getTimetable(
+      department: department,
+      section: section,
+      semester: semester,
+    );
+
+    await localDataSource.cacheTimetable(timetable: remoteTimetable);
+
+    return Right(
+      remoteTimetable.toEntity(
+        lastUpdated: DateTime.now(), // No sectionKey/department needed now
+      ),
+    );
+  } on ServerFailure catch (_) {
     try {
-      final remoteTimetable = await remoteDataSource.getTimetable(
-        department: department,
+      final cachedTimetable = await localDataSource.getTimetable(
         section: section,
         semester: semester,
       );
 
-      await localDataSource.cacheTimetable(timetable: remoteTimetable);
-
-      return Right(
-        remoteTimetable.toEntity(
-          sectionKey: section,
-          department: department,
-          lastUpdated: DateTime.now(), // Replace with real timestamp if stored
-        ),
-      );
-    } on ServerFailure catch (_) {
-      try {
-        final cachedTimetable = await localDataSource.getTimetable(
-          section: section,
-          semester: semester,
+      if (cachedTimetable != null) {
+        return Right(
+          cachedTimetable.toEntity(
+            lastUpdated: DateTime.now(),
+          ),
         );
-
-        if (cachedTimetable != null) {
-          return Right(
-            cachedTimetable.toEntity(
-              sectionKey: section,
-              department: department,
-              lastUpdated: DateTime.now(), // Replace with stored timestamp if needed
-            ),
-          );
-        } else {
-          return Left(ServerFailure(message: 'No timetable available for this section and semester'));
-        }
-      } on CacheFailure catch (cacheFailure) {
-        return Left(cacheFailure);
+      } else {
+        return Left(ServerFailure(message: 'No timetable available for this section and semester'));
       }
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+    } on CacheFailure catch (cacheFailure) {
+      return Left(cacheFailure);
     }
+  } catch (e) {
+    return Left(ServerFailure(message: e.toString()));
   }
+}
+
 
   @override
   Future<Either<Failure, List<ClassAction>>> getClassActions({

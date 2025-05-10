@@ -5,7 +5,9 @@ import '../providers/timetable_provider.dart';
 import '../../../data/models/timetable_model.dart';
 
 class TimetableGrid extends StatefulWidget {
-  const TimetableGrid({super.key});
+  final void Function(String timeSlot, ClassSlotModel slot)? onClassTap;
+
+  const TimetableGrid({super.key, this.onClassTap});
 
   @override
   State<TimetableGrid> createState() => _TimetableGridState();
@@ -16,16 +18,20 @@ class _TimetableGridState extends State<TimetableGrid> {
 
   @override
   void initState() {
+    super.initState();
     final now = DateTime.now();
     _selectedDayIndex = now.weekday - 1; // Monday = 0, Sunday = 6
-    final provider = Provider.of<TimetableProvider>(context, listen: false);
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final selectedDate = DateTime(
-      startOfWeek.year,
-      startOfWeek.month,
-      startOfWeek.day + _selectedDayIndex,
-    );
-    provider.setSelectedDate(selectedDate);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<TimetableProvider>(context, listen: false);
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      final selectedDate = DateTime(
+        startOfWeek.year,
+        startOfWeek.month,
+        startOfWeek.day + _selectedDayIndex,
+      );
+      provider.setSelectedDate(selectedDate);
+    });
   }
 
   @override
@@ -56,10 +62,7 @@ class _TimetableGridState extends State<TimetableGrid> {
               setState(() {
                 _selectedDayIndex = index;
               });
-              final provider = Provider.of<TimetableProvider>(
-                context,
-                listen: false,
-              );
+              final provider = Provider.of<TimetableProvider>(context, listen: false);
               final today = DateTime.now();
               final selectedDate = today
                   .subtract(Duration(days: today.weekday - 1))
@@ -78,8 +81,7 @@ class _TimetableGridState extends State<TimetableGrid> {
                   AppStrings.weekdays[index],
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.grey,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ),
@@ -108,22 +110,21 @@ class _TimetableGridState extends State<TimetableGrid> {
 
         final slotsMap = provider.getSlotsForSelectedDay();
 
-        // Filter out 'Free' classes and sort by actual time
-        final sortedEntries =
-            slotsMap.entries.toList()..sort((a, b) {
-              int timeToMinutes(String timeStr) {
-                final timeRange =
-                    timeStr.split('-').first.trim(); // e.g., "2:00"
-                final parts = timeRange.split(':');
-                final hour = int.tryParse(parts[0]) ?? 0;
-                final minute = int.tryParse(parts[1]) ?? 0;
-                final hour24 =
-                    (hour < 7) ? hour + 12 : hour; // e.g., 2 becomes 14
-                return hour24 * 60 + minute;
-              }
+        final sortedEntries = slotsMap.entries
+            .where((entry) => entry.value.course != 'Free')
+            .toList()
+          ..sort((a, b) {
+            int toMinutes(String timeStr) {
+              final timeRange = timeStr.split('-').first.trim();
+              final parts = timeRange.split(':');
+              final hour = int.tryParse(parts[0]) ?? 0;
+              final minute = int.tryParse(parts[1]) ?? 0;
+              final hour24 = (hour < 7) ? hour + 12 : hour;
+              return hour24 * 60 + minute;
+            }
 
-              return timeToMinutes(a.key).compareTo(timeToMinutes(b.key));
-            });
+            return toMinutes(a.key).compareTo(toMinutes(b.key));
+          });
 
         if (sortedEntries.isEmpty) {
           return const Padding(
@@ -146,7 +147,14 @@ class _TimetableGridState extends State<TimetableGrid> {
           itemCount: sortedEntries.length,
           itemBuilder: (context, index) {
             final entry = sortedEntries[index];
-            return _buildClassCard(entry.key, entry.value);
+            return GestureDetector(
+              onTap: () {
+                if (widget.onClassTap != null) {
+                  widget.onClassTap!(entry.key, entry.value);
+                }
+              },
+              child: _buildClassCard(entry.key, entry.value),
+            );
           },
         );
       },
@@ -177,10 +185,7 @@ class _TimetableGridState extends State<TimetableGrid> {
                 Text(time, style: const TextStyle(color: Colors.grey)),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0,
-                    vertical: 2.0,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
                   decoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(4.0),

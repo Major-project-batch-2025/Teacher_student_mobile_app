@@ -1,20 +1,15 @@
-// lib/presentation/providers/timetable_provider.dart
-
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
 import '../../../data/models/timetable_model.dart';
 import '../../../data/datasources/remote/firebase_schedule_ds.dart';
 
 class TimetableProvider extends ChangeNotifier {
   final FirebaseScheduleDataSource _remoteSource = FirebaseScheduleDataSourceImpl();
 
-  final _uuid = const Uuid();
-
-  // Section-specific nested timetable (e.g., Section_A)
+  // Used for student view (single section)
   Map<String, Map<String, ClassSlotModel>>? _sectionSchedule;
   Map<String, Map<String, ClassSlotModel>>? get sectionSchedule => _sectionSchedule;
 
-  // Store multiple section schedules
+  // Used for teacher view (multiple sections)
   final Map<String, Map<String, Map<String, ClassSlotModel>>> _sectionSchedules = {};
 
   DateTime _selectedDate = DateTime.now();
@@ -26,39 +21,50 @@ class TimetableProvider extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
-  // Initialize from Firestore
+  /// Initializes timetable data
+  /// Set [isTeacher] = true if calling for a teacher to avoid overwriting `_sectionSchedule`
   Future<void> initialize({
     required String department,
     required String section,
     required int semester,
+    bool isTeacher = false,
   }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
+      debugPrint('📥 Fetching timetable for:');
+      debugPrint('   Department: $department');
+      debugPrint('   Section: $section');
+      debugPrint('   Semester: $semester');
+
       final timetable = await _remoteSource.getTimetable(
         department: department,
         section: section,
         semester: semester,
       );
 
-      // Store the schedule for the selected section
-      final sectionKey = 'Section_$section';
-      if (timetable.sections.containsKey(sectionKey)) {
-        _sectionSchedule = timetable.sections[sectionKey];
-        // Also store in the map of all sections for teacher's view
-        _sectionSchedules[sectionKey] = timetable.sections[sectionKey] ?? {};
+      final sectionKey = section.trim().toLowerCase(); // Normalize section key
+
+      if (isTeacher) {
+        _sectionSchedules[sectionKey] = timetable.schedule;
       } else {
-        throw Exception('No schedule found for $sectionKey');
+        _sectionSchedule = timetable.schedule;
       }
 
-      _isLoading = false;
-      notifyListeners();
+      debugPrint('📦 Timetable loaded for $sectionKey: ${timetable.schedule.length} days');
+
+      Future.microtask(() {
+        _isLoading = false;
+        notifyListeners();
+      });
     } catch (e) {
-      _isLoading = false;
-      _error = 'Failed to load timetable: ${e.toString()}';
-      notifyListeners();
+      Future.microtask(() {
+        _isLoading = false;
+        _error = 'Failed to load timetable: ${e.toString()}';
+        notifyListeners();
+      });
     }
   }
 
@@ -67,43 +73,41 @@ class TimetableProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Return a map of all time slots with course info for the selected weekday
+  /// Returns slots for the selected day (used in student timetable view)
   Map<String, ClassSlotModel> getSlotsForSelectedDay() {
     if (_sectionSchedule == null) return {};
 
     final dayName = _weekdayToFirestoreKey(_selectedDate.weekday);
     final result = <String, ClassSlotModel>{};
 
-    _sectionSchedule!.forEach((timeSlot, dayMap) {
-      if (dayMap.containsKey(dayName)) {
-        result[timeSlot] = dayMap[dayName]!;
-      }
-    });
+    final dayMap = _sectionSchedule![dayName];
+    if (dayMap != null) {
+      result.addAll(dayMap);
+
+      // Debug
+      debugPrint('🗓️ Slots for $dayName:');
+      dayMap.forEach((time, slot) {
+        debugPrint('⏰ $time → ${slot.course} (${slot.teacher})');
+      });
+    }
 
     return result;
   }
 
-  // Get schedule for a specific section
+  /// Returns schedule for a given section (used in teacher timetable view)
   Map<String, Map<String, ClassSlotModel>>? getSectionSchedule(String sectionKey) {
-    return _sectionSchedules[sectionKey];
+    final normalizedKey = sectionKey.trim().toLowerCase(); // Normalize
+    for (final key in _sectionSchedules.keys) {
+      if (key.trim().toLowerCase() == normalizedKey) {
+        return _sectionSchedules[key];
+      }
+    }
+    debugPrint('⚠️ No schedule found for $normalizedKey');
+    return null;
   }
 
   String _weekdayToFirestoreKey(int weekday) {
-    switch (weekday) {
-      case DateTime.monday:
-        return 'Monday';
-      case DateTime.tuesday:
-        return 'Tuesday';
-      case DateTime.wednesday:
-        return 'Wednesday';
-      case DateTime.thursday:
-        return 'Thursday';
-      case DateTime.friday:
-        return 'Friday';
-      case DateTime.saturday:
-        return 'Saturday';
-      default:
-        return 'Monday';
-    }
+    const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return weekdays[(weekday - 1).clamp(0, 5)];
   }
 }

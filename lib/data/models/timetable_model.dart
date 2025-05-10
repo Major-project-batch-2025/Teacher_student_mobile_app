@@ -1,6 +1,3 @@
-// lib/data/models/timetable_model.dart
-// Purpose: Data model for timetable with JSON serialization
-
 import '../../domain/entities/timetable.dart';
 
 class ClassSlotModel {
@@ -25,117 +22,120 @@ class ClassSlotModel {
       'teacher': teacher,
     };
   }
+
+  ClassSlot toEntity({
+    required String id,
+    required String subject,
+    required int dayOfWeek,
+    required String startTime,
+    required String endTime,
+    required int durationMinutes,
+    required DateTime updatedAt,
+  }) {
+    return ClassSlot(
+      id: id,
+      subject: subject,
+      teacherId: '', // Update if needed
+      teacherName: teacher,
+      roomNumber: '', // Add if your model supports it
+      dayOfWeek: dayOfWeek,
+      startTime: startTime,
+      endTime: endTime,
+      durationMinutes: durationMinutes,
+      updatedAt: updatedAt,
+    );
+  }
 }
 
 class TimetableModel {
-  final int numberOfSections;
+  final String department;
+  final String section;
   final int semester;
-  final Map<String, Map<String, Map<String, ClassSlotModel>>> sections;
+  final Map<String, Map<String, ClassSlotModel>> schedule;
 
   const TimetableModel({
-    required this.numberOfSections,
+    required this.department,
+    required this.section,
     required this.semester,
-    required this.sections,
+    required this.schedule,
   });
 
+  /// Useful for teacher screens (organized by section prefix)
+  Map<String, Map<String, Map<String, ClassSlotModel>>> get sections {
+    return {'Section_$section': schedule};
+  }
+
   factory TimetableModel.fromJson(Map<String, dynamic> json) {
-    // Safely extract sections from JSON with null-safety
-    final rawSections = json['sections'] as Map<String, dynamic>? ?? {};
+    final schedule = <String, Map<String, ClassSlotModel>>{};
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-    final parsedSections = rawSections.map((sectionKey, sectionValue) {
-      // Handle missing or malformed schedule
-      final Map<String, dynamic> sectionMap = 
-          sectionValue is Map<String, dynamic> ? sectionValue : {};
-      final schedule = sectionMap['schedule'] as Map<String, dynamic>? ?? {};
-      
-      final scheduleMap = schedule.map(
-        (timeSlotKey, timeSlotValue) {
-          // Ensure timeSlotValue is Map<String, dynamic>
-          final timeSlotMap = timeSlotValue is Map<String, dynamic> 
-              ? timeSlotValue 
-              : <String, dynamic>{};
-              
+    for (final day in days) {
+      final data = json[day];
+      if (data is Map<String, dynamic>) {
+        final parsed = data.map((time, classData) {
           return MapEntry(
-            timeSlotKey,
-            timeSlotMap.map(
-              (dayKey, dayValue) {
-                return MapEntry(
-                  dayKey, 
-                  dayValue is Map<String, dynamic> 
-                      ? ClassSlotModel.fromJson(dayValue)
-                      : const ClassSlotModel(course: 'Free', teacher: '')
-                );
-              },
-            ),
+            time,
+            classData is Map<String, dynamic>
+                ? ClassSlotModel.fromJson(classData)
+                : const ClassSlotModel(course: 'Free', teacher: ''),
           );
-        },
-      );
-
-      return MapEntry(sectionKey, scheduleMap);
-    });
+        });
+        schedule[_capitalize(day)] = parsed;
+      }
+    }
 
     return TimetableModel(
-      numberOfSections: json['numberOfSections'] ?? 1,
+      department: json['department'] ?? '',
+      section: json['section'] ?? '',
       semester: json['semester'] ?? 0,
-      sections: parsedSections,
+      schedule: schedule,
     );
   }
 
   Map<String, dynamic> toJson() {
-    final sectionsMap = sections.map((sectionKey, schedule) {
-      final scheduleMap = schedule.map((timeSlot, dayMap) {
-        return MapEntry(
-            timeSlot, dayMap.map((day, slot) => MapEntry(day, slot.toJson())));
-      });
-
-      return MapEntry(sectionKey, {'schedule': scheduleMap});
+    final scheduleMap = schedule.map((day, timeMap) {
+      return MapEntry(
+        day.toLowerCase(),
+        timeMap.map((time, slot) => MapEntry(time, slot.toJson())),
+      );
     });
 
     return {
-      'numberOfSections': numberOfSections,
+      'department': department,
+      'section': section,
       'semester': semester,
-      'sections': sectionsMap,
+      ...scheduleMap,
     };
   }
 
-  // Converts TimetableModel to domain-level Timetable entity
-  Timetable toEntity({
-    required String sectionKey,
-    required String department,
-    required DateTime lastUpdated,
-  }) {
+  Timetable toEntity({required DateTime lastUpdated}) {
     final slots = <ClassSlot>[];
 
-    final schedule = sections[sectionKey];
-    if (schedule != null) {
-      schedule.forEach((timeSlot, dayMap) {
-        // Safely parse time slot parts with null checks
-        final timeParts = timeSlot.split('-');
-        final startTime = timeParts.isNotEmpty ? timeParts[0].trim() : '00:00';
-        final endTime = timeParts.length > 1 ? timeParts[1].trim() : '00:00';
+    schedule.forEach((day, timeMap) {
+      final dayIndex = _dayToIndex(day);
 
-        dayMap.forEach((dayName, slotModel) {
-          final slot = ClassSlot(
-            id: '${sectionKey}_${dayName}_$timeSlot',
-            subject: slotModel.course,
-            teacherId: '', // optional: update if you store IDs later
-            teacherName: slotModel.teacher,
-            roomNumber: '', // not provided in data
-            dayOfWeek: _dayToIndex(dayName),
-            startTime: startTime,
-            endTime: endTime,
-            durationMinutes: 60, // or calculate if needed
-            updatedAt: lastUpdated,
-          );
-          slots.add(slot);
-        });
+      timeMap.forEach((timeSlot, classSlot) {
+        final parts = timeSlot.split('-');
+        final startTime = parts[0].trim();
+        final endTime = parts.length > 1 ? parts[1].trim() : '';
+        final duration = _calculateDuration(startTime, endTime);
+
+        slots.add(classSlot.toEntity(
+          id: '${section}_${day}_$timeSlot',
+          subject: classSlot.course,
+          dayOfWeek: dayIndex,
+          startTime: startTime,
+          endTime: endTime,
+          durationMinutes: duration,
+          updatedAt: lastUpdated,
+        ));
       });
-    }
+    });
 
     return Timetable(
-      id: 'timetable_${sectionKey}_${semester}',
+      id: 'timetable_${section}_$semester',
       department: department,
-      section: sectionKey.replaceAll('Section_', ''),
+      section: section,
       semester: semester,
       validFrom: DateTime.now(),
       validUntil: DateTime.now().add(const Duration(days: 180)),
@@ -144,9 +144,8 @@ class TimetableModel {
     );
   }
 
-  // Utility to convert weekday string to 0-based index (Monday = 0)
   int _dayToIndex(String day) {
-    const days = {
+    const map = {
       'Monday': 0,
       'Tuesday': 1,
       'Wednesday': 2,
@@ -154,6 +153,30 @@ class TimetableModel {
       'Friday': 4,
       'Saturday': 5,
     };
-    return days[day] ?? 0;
+    return map[day] ?? 0;
   }
+
+  int _calculateDuration(String start, String end) {
+    try {
+      final s = _parseTime(start);
+      final e = _parseTime(end);
+      return e.difference(s).inMinutes;
+    } catch (_) {
+      return 60;
+    }
+  }
+
+  DateTime _parseTime(String time) {
+    final parts = time.split(':');
+    final hour = int.tryParse(parts[0]) ?? 0;
+    final minute = int.tryParse(parts[1]) ?? 0;
+    final hour24 = (hour < 7) ? hour + 12 : hour;
+    return DateTime(0, 1, 1, hour24, minute);
+  }
+
+static String _capitalize(String str) {
+  if (str.isEmpty) return str;
+  return str[0].toUpperCase() + str.substring(1);
+}
+
 }

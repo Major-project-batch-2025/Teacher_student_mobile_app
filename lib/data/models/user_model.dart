@@ -14,7 +14,6 @@ class UserModel extends User {
     super.profileImageUrl,
   });
 
-  // Factory constructor to create a UserModel from JSON
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] ?? '',
@@ -25,7 +24,6 @@ class UserModel extends User {
     );
   }
 
-  // Convert UserModel to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -36,7 +34,6 @@ class UserModel extends User {
     };
   }
 
-  // Helper to parse UserRole from string
   static UserRole _parseUserRole(String roleStr) {
     switch (roleStr.toLowerCase()) {
       case 'student':
@@ -49,8 +46,7 @@ class UserModel extends User {
         return UserRole.student;
     }
   }
-  
-  // Create UserModel from User entity
+
   factory UserModel.fromEntity(User user) {
     return UserModel(
       id: user.id,
@@ -74,14 +70,12 @@ class StudentModel extends Student {
     super.profileImageUrl,
   });
 
-  // Factory constructor to create a StudentModel from JSON
-  // Updated to match Firestore structure
   factory StudentModel.fromJson(Map<String, dynamic> json) {
     return StudentModel(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       email: json['email'] ?? '',
-      rollNumber: json['usn'] ?? '', // Changed from rollNumber to usn to match Firestore
+      rollNumber: json['usn'] ?? '',
       department: json['department'] ?? '',
       section: json['section'] ?? '',
       semester: int.tryParse(json['semester']?.toString() ?? '0') ?? 0,
@@ -89,23 +83,20 @@ class StudentModel extends Student {
     );
   }
 
-  // Convert StudentModel to JSON
-  // Updated to match Firestore structure
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
       'email': email,
       'role': 'student',
-      'usn': rollNumber, // Changed from rollNumber to usn to match Firestore
+      'usn': rollNumber,
       'department': department,
       'section': section,
       'semester': semester,
       'profileImageUrl': profileImageUrl,
     };
   }
-  
-  // Create StudentModel from Student entity
+
   factory StudentModel.fromEntity(Student student) {
     return StudentModel(
       id: student.id,
@@ -128,14 +119,9 @@ class TeachingAssignmentModel extends TeachingAssignment {
     required super.semester,
   });
 
-  // Factory constructor to create a TeachingAssignmentModel from JSON
   factory TeachingAssignmentModel.fromJson(Map<String, dynamic> json) {
-    // Extract sections with null safety
-    List<String> sections = [];
-    if (json['sections'] is List) {
-      sections = List<String>.from(json['sections']);
-    }
-    
+    final sections = (json['sections'] as List?)?.map((e) => e.toString()).toList() ?? [];
+
     return TeachingAssignmentModel(
       subject: json['subject'] ?? '',
       departmentCode: json['departmentCode'] ?? '',
@@ -144,7 +130,6 @@ class TeachingAssignmentModel extends TeachingAssignment {
     );
   }
 
-  // Convert TeachingAssignmentModel to JSON
   Map<String, dynamic> toJson() {
     return {
       'subject': subject,
@@ -153,8 +138,7 @@ class TeachingAssignmentModel extends TeachingAssignment {
       'semester': semester,
     };
   }
-  
-  // Create TeachingAssignmentModel from TeachingAssignment entity
+
   factory TeachingAssignmentModel.fromEntity(TeachingAssignment assignment) {
     return TeachingAssignmentModel(
       subject: assignment.subject,
@@ -176,70 +160,50 @@ class TeacherModel extends Teacher {
     super.profileImageUrl,
   });
 
-  // Factory constructor to create a TeacherModel from JSON
-  // Updated to match Firestore structure
   factory TeacherModel.fromJson(Map<String, dynamic> json) {
-    // Handle teaching assignments with proper null safety
-    List<TeachingAssignmentModel> teachingAssignments = [];
-    
-    // Process 'assignment' array from Firestore (not 'teachingAssignments')
-    if (json['assignment'] != null && json['assignment'] is List) {
-      final assignmentsList = json['assignment'] as List;
-      teachingAssignments = assignmentsList
-        .where((item) => item is Map)
-        .map((assignmentJson) {
-          final assignmentMap = assignmentJson as Map<String, dynamic>;
-          
-          // Extract sections as List<String>
-          List<String> sections = [];
-          if (assignmentMap['sections'] is List) {
-            sections = List<String>.from(assignmentMap['sections']);
-          }
-          
+    final assignments = (json['assignment'] as List?)
+        ?.whereType<Map<String, dynamic>>()
+        .map((assignment) {
+          final sections = (assignment['sections'] as List?)?.map((e) => e.toString()).toList() ?? [];
           return TeachingAssignmentModel(
-            subject: assignmentMap['subject'] ?? 'Unknown',
-            departmentCode: json['department'] ?? 'Unknown',
+            subject: assignment['subject'] ?? '',
+            departmentCode: json['department'] ?? '',
             sections: sections,
-            semester: int.tryParse(assignmentMap['semester']?.toString() ?? '0') ?? 0,
+            semester: int.tryParse(assignment['semester']?.toString() ?? '0') ?? 0,
           );
         })
-        .toList();
-    }
+        .toList() ?? [];
 
     return TeacherModel(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       email: json['email'] ?? '',
-      employeeId: json['tId'] ?? '', // Changed from employeeId to tId to match Firestore
+      employeeId: json['tId'] ?? '',
       department: json['department'] ?? '',
-      teachingAssignments: teachingAssignments,
+      teachingAssignments: assignments,
       profileImageUrl: json['profileImageUrl'] ?? '',
     );
   }
 
-  // Convert TeacherModel to JSON
-  // Updated to match Firestore structure
   Map<String, dynamic> toJson() {
-    // Transform teaching assignments to match Firestore structure
-    final assignmentsList = teachingAssignments.map((assignment) => {
+    final assignmentList = teachingAssignments.map((assignment) => {
       'subject': assignment.subject,
       'sections': assignment.sections,
       'semester': assignment.semester,
     }).toList();
-    
+
     return {
       'id': id,
       'name': name,
       'email': email,
       'role': 'teacher',
-      'tId': employeeId, // Changed from employeeId to tId to match Firestore
+      'tId': employeeId,
       'department': department,
-      'assignment': assignmentsList, // Changed from teachingAssignments to assignment
+      'assignment': assignmentList,
       'profileImageUrl': profileImageUrl,
     };
   }
-  
-  // Create TeacherModel from Teacher entity
+
   factory TeacherModel.fromEntity(Teacher teacher) {
     return TeacherModel(
       id: teacher.id,
@@ -247,10 +211,8 @@ class TeacherModel extends Teacher {
       email: teacher.email,
       employeeId: teacher.employeeId,
       department: teacher.department,
-      teachingAssignments: teacher.teachingAssignments.map((assignment) => 
-        (assignment is TeachingAssignmentModel) 
-            ? assignment 
-            : TeachingAssignmentModel.fromEntity(assignment)
+      teachingAssignments: teacher.teachingAssignments.map((e) =>
+        e is TeachingAssignmentModel ? e : TeachingAssignmentModel.fromEntity(e)
       ).toList(),
       profileImageUrl: teacher.profileImageUrl,
     );

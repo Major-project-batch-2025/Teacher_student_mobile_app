@@ -1,13 +1,10 @@
-// lib/presentation/teacher/screens/teacher_section_view.dart
-// Purpose: Show timetable for a specific section with teacher actions
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants.dart';
 import '../../../domain/entities/class_action.dart';
 import '../../../domain/entities/teacher.dart';
-import '../../../domain/entities/timetable.dart';
+import '../../../data/models/timetable_model.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../providers/timetable_provider.dart';
 import '../../shared_widgets/action_dialog.dart';
@@ -19,7 +16,7 @@ class TeacherSectionViewScreen extends StatefulWidget {
   final String section;
   final int semester;
   final String department;
-  
+
   const TeacherSectionViewScreen({
     super.key,
     required this.section,
@@ -35,17 +32,14 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
   @override
   void initState() {
     super.initState();
-    
-    // Initialize timetable provider after build completes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeTimetable();
     });
   }
-  
-  // Initialize timetable for this section
+
   Future<void> _initializeTimetable() async {
     final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
-    
+
     await timetableProvider.initialize(
       department: widget.department,
       section: widget.section,
@@ -56,8 +50,7 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    
-    // Safety check to ensure user is logged in and is a teacher
+
     if (!authProvider.isLoggedIn || !authProvider.isTeacher) {
       return Scaffold(
         body: Center(
@@ -66,9 +59,7 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
             children: [
               const Text('You need to be logged in as a teacher'),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
+                onPressed: () => Navigator.of(context).pop(),
                 child: const Text('Go Back'),
               ),
             ],
@@ -76,9 +67,9 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
         ),
       );
     }
-    
+
     final teacher = authProvider.user as Teacher;
-    
+
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
@@ -92,19 +83,14 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
           ),
         ),
         actions: [
-          // Notification bell
           const NotificationBell(isTeacher: true),
-          
-          // View class actions button
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ClassActionScreen(
-                    section: widget.section,
-                  ),
+                  builder: (context) => ClassActionScreen(section: widget.section),
                 ),
               );
             },
@@ -119,7 +105,6 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Section info
               Text(
                 '${widget.department} - ${widget.section}',
                 style: const TextStyle(
@@ -136,9 +121,10 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                 ),
               ),
               const SizedBox(height: 24.0),
-              
-              // Timetable grid
-              const TimetableGrid(),
+              TimetableGrid(
+                onClassTap: (time, classSlot) =>
+                    _handleClassTap(time, classSlot, teacher),
+              ),
             ],
           ),
         ),
@@ -150,12 +136,13 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
       ),
     );
   }
-  
-  // Handle class tap to show action options
-  void _handleClassTap(ClassSlot classSlot, Teacher teacher) {
-    // Check if this class belongs to the logged-in teacher
-    bool isTeacherClass = classSlot.teacherId == teacher.id;
-    
+
+  void _handleClassTap(String time, ClassSlotModel classSlot, Teacher teacher) {
+    final isTeacherClass = teacher.teachingAssignments.any((assignment) =>
+        assignment.subject == classSlot.course &&
+        assignment.sections.contains(widget.section) &&
+        assignment.semester == widget.semester);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.grey.shade900,
@@ -165,10 +152,9 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Class details
               ListTile(
                 title: Text(
-                  classSlot.subject,
+                  classSlot.course,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -176,15 +162,11 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                   ),
                 ),
                 subtitle: Text(
-                  '${classSlot.startTime} - ${classSlot.endTime}, ${classSlot.roomNumber}',
-                  style: const TextStyle(
-                    color: Colors.grey,
-                  ),
+                  'Instructor: ${classSlot.teacher}',
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ),
               const Divider(color: Colors.grey),
-              
-              // Action buttons (only for teacher's own classes)
               if (isTeacherClass) ...[
                 _buildActionButton(
                   icon: Icons.cancel,
@@ -192,7 +174,7 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                   color: Colors.red,
                   onTap: () {
                     Navigator.pop(context);
-                    _showActionDialog(classSlot, teacher, ActionType.cancel);
+                    _showActionDialog(classSlot, teacher, ActionType.cancel, time);
                   },
                 ),
                 _buildActionButton(
@@ -201,7 +183,7 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                   color: Colors.orange,
                   onTap: () {
                     Navigator.pop(context);
-                    _showActionDialog(classSlot, teacher, ActionType.reschedule);
+                    _showActionDialog(classSlot, teacher, ActionType.reschedule, time);
                   },
                 ),
                 _buildActionButton(
@@ -210,11 +192,10 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                   color: Colors.green,
                   onTap: () {
                     Navigator.pop(context);
-                    _showActionDialog(classSlot, teacher, ActionType.extraClass);
+                    _showActionDialog(classSlot, teacher, ActionType.extraClass, time);
                   },
                 ),
-              ] else ...[
-                // Message if the class doesn't belong to this teacher
+              ] else
                 const ListTile(
                   title: Text(
                     "You can only manage your own classes",
@@ -225,38 +206,66 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-              ],
             ],
           ),
         );
       },
     );
   }
-  
-  // Show action dialog for the selected action type
-  void _showActionDialog(ClassSlot classSlot, Teacher teacher, ActionType actionType) {
+
+  void _showActionDialog(ClassSlotModel classSlotModel, Teacher teacher,
+      ActionType actionType, String time) {
+    final parts = time.split('-');
+    final startTime = parts[0].trim();
+    final endTime = parts.length > 1 ? parts[1].trim() : '';
+    final duration = _calculateDuration(startTime, endTime);
+
+    final classSlotEntity = classSlotModel.toEntity(
+      id: '${widget.section}_${widget.semester}_$time',
+      subject: classSlotModel.course,
+      dayOfWeek: DateTime.now().weekday - 1,
+      startTime: startTime,
+      endTime: endTime,
+      durationMinutes: duration,
+      updatedAt: DateTime.now(),
+    );
+
     showDialog(
       context: context,
       builder: (context) => ActionDialog(
-        classSlot: classSlot,
+        classSlot: classSlotEntity,
         actionType: actionType,
         teacherId: teacher.id,
         teacherName: teacher.name,
       ),
     );
   }
-  
-  // Handle adding an extra class (FAB)
+
+  int _calculateDuration(String start, String end) {
+    try {
+      final startParts = start.split(':');
+      final endParts = end.split(':');
+
+      final startHour = int.tryParse(startParts[0]) ?? 0;
+      final startMinute = int.tryParse(startParts[1]) ?? 0;
+      final endHour = int.tryParse(endParts[0]) ?? 0;
+      final endMinute = int.tryParse(endParts[1]) ?? 0;
+
+      final startTotal = startHour * 60 + startMinute;
+      final endTotal = endHour * 60 + endMinute;
+
+      return endTotal - startTotal;
+    } catch (_) {
+      return 60;
+    }
+  }
+
   void _handleAddExtraClass(Teacher teacher) {
-    // For now, just show a snackbar
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Feature coming soon: Add extra class'),
-      ),
+      const SnackBar(content: Text('Feature coming soon: Add extra class')),
     );
   }
-  
-  // Build an action button for the bottom sheet
+
   Widget _buildActionButton({
     required IconData icon,
     required String label,
@@ -264,15 +273,10 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: color,
-      ),
+      leading: Icon(icon, color: color),
       title: Text(
         label,
-        style: const TextStyle(
-          color: Colors.white,
-        ),
+        style: const TextStyle(color: Colors.white),
       ),
       onTap: onTap,
     );
