@@ -13,6 +13,11 @@ abstract class FirebaseScheduleDataSource {
     required int semester,
   });
 
+  // New method to fetch all timetables for a teacher
+  Future<List<TimetableModel>> getAllTimetablesForTeacher({
+    required String department,
+  });
+
   Future<List<ClassActionModel>> getClassActions({
     required String timetableId,
   });
@@ -121,6 +126,78 @@ class FirebaseScheduleDataSourceImpl implements FirebaseScheduleDataSource {
     }
   }
 
+  @override
+  Future<List<TimetableModel>> getAllTimetablesForTeacher({
+    required String department,
+  }) async {
+    try {
+      print('📥 Fetching all timetables for department: $department');
+
+      // Get all timetables for the department
+      final snapshot = await _firestore
+          .collection('Modified_TimeTable')
+          .where('department', isEqualTo: department)
+          .get();
+
+      print('📦 Found ${snapshot.docs.length} timetables');
+
+      final timetables = <TimetableModel>[];
+
+      for (final doc in snapshot.docs) {
+        final docRef = doc.reference;
+        final data = doc.data();
+        
+        final department = data['department'] as String?;
+        final section = data['section'] as String?;
+        final semester = data['semester'] as int?;
+        
+        if (department == null || section == null || semester == null) {
+          print('⚠️ Skipping document ${doc.id} - missing required fields');
+          continue;
+        }
+
+        final Map<String, Map<String, ClassSlotModel>> schedule = {};
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+        for (final day in days) {
+          final formattedDay = day[0].toUpperCase() + day.substring(1);
+          schedule[formattedDay] = {};
+
+          final daySnapshot = await docRef.collection(day).get();
+          if (daySnapshot.docs.isEmpty) continue;
+
+          final dayDoc = daySnapshot.docs.first;
+          final slotMap = dayDoc.data();
+
+          for (final time in slotMap.keys) {
+            final slot = slotMap[time];
+
+            if (slot is Map<String, dynamic>) {
+              final course = slot['course'] ?? 'Free';
+              final teacher = slot['teacher'] ?? '';
+              final classSlot = ClassSlotModel(course: course, teacher: teacher);
+              schedule[formattedDay]![time] = classSlot;
+            }
+          }
+        }
+
+        timetables.add(TimetableModel(
+          department: department,
+          section: section,
+          semester: semester,
+          schedule: schedule,
+        ));
+      }
+
+      return timetables;
+    } catch (e) {
+      print('❌ Error fetching all timetables: $e');
+      throw ServerFailure(message: e.toString());
+    }
+  }
+
+  // ... rest of the methods remain the same ...
+  
   @override
   Future<List<ClassActionModel>> getClassActions({
     required String timetableId,

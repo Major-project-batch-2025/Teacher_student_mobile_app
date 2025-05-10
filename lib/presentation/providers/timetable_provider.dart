@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../data/models/timetable_model.dart';
 import '../../../data/datasources/remote/firebase_schedule_ds.dart';
+import '../../../domain/entities/teacher.dart';
 
 class TimetableProvider extends ChangeNotifier {
   final FirebaseScheduleDataSource _remoteSource = FirebaseScheduleDataSourceImpl();
@@ -11,6 +12,10 @@ class TimetableProvider extends ChangeNotifier {
 
   // Used for teacher view (multiple sections)
   final Map<String, Map<String, Map<String, ClassSlotModel>>> _sectionSchedules = {};
+
+  // New: Teacher's personal timetable (only their classes)
+  Map<String, List<TeacherClassInfo>> _teacherPersonalSchedule = {};
+  Map<String, List<TeacherClassInfo>> get teacherPersonalSchedule => _teacherPersonalSchedule;
 
   DateTime _selectedDate = DateTime.now();
   DateTime get selectedDate => _selectedDate;
@@ -68,6 +73,99 @@ class TimetableProvider extends ChangeNotifier {
     }
   }
 
+  /// Initialize teacher's personal timetable by fetching all timetables and filtering by teacher name
+  Future<void> initializeTeacherPersonalTimetable({
+    required Teacher teacher,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      debugPrint('📥 Fetching personal timetable for teacher: ${teacher.name}');
+
+      // Fetch all timetables for the teacher's department
+      final allTimetables = await _remoteSource.getAllTimetablesForTeacher(
+        department: teacher.department,
+      );
+
+      debugPrint('📦 Processing ${allTimetables.length} timetables');
+
+      // Clear previous schedule
+      _teacherPersonalSchedule.clear();
+
+      // Process each timetable
+      for (final timetable in allTimetables) {
+        // Check each day
+        timetable.schedule.forEach((day, timeSlots) {
+          // Check each time slot
+          timeSlots.forEach((time, classSlot) {
+            // If the teacher name matches, add to personal schedule
+            if (classSlot.teacher.toLowerCase() == teacher.name.toLowerCase()) {
+              // Create teacher class info
+              final classInfo = TeacherClassInfo(
+                subject: classSlot.course,
+                section: timetable.section,
+                time: time,
+                semester: timetable.semester,
+              );
+
+              // Add to schedule
+              if (_teacherPersonalSchedule.containsKey(day)) {
+                _teacherPersonalSchedule[day]!.add(classInfo);
+              } else {
+                _teacherPersonalSchedule[day] = [classInfo];
+              }
+            }
+          });
+        });
+      }
+
+      // Sort classes by time for each day
+      _teacherPersonalSchedule.forEach((day, classes) {
+        classes.sort((a, b) => _compareTimeStrings(a.time, b.time));
+      });
+
+      debugPrint('📦 Teacher personal schedule loaded');
+
+      Future.microtask(() {
+        _isLoading = false;
+        notifyListeners();
+      });
+    } catch (e) {
+      Future.microtask(() {
+        _isLoading = false;
+        _error = 'Failed to load teacher personal timetable: ${e.toString()}';
+        notifyListeners();
+      });
+    }
+  }
+
+  int _compareTimeStrings(String time1, String time2) {
+    // Extract start time from format "HH:MM - HH:MM"
+    final start1 = time1.split('-')[0].trim();
+    final start2 = time2.split('-')[0].trim();
+    
+    // Convert to minutes
+    final minutes1 = _timeToMinutes(start1);
+    final minutes2 = _timeToMinutes(start2);
+    
+    return minutes1.compareTo(minutes2);
+  }
+
+  int _timeToMinutes(String time) {
+    final parts = time.split(':');
+    if (parts.length != 2) return 0;
+    
+    final hour = int.tryParse(parts[0]) ?? 0;
+    final minute = int.tryParse(parts[1]) ?? 0;
+    
+    // Handle 12-hour format (assuming times after 7 are PM)
+    final hour24 = (hour < 7) ? hour + 12 : hour;
+    
+    return hour24 * 60 + minute;
+  }
+
   void setSelectedDate(DateTime date) {
     _selectedDate = date;
     notifyListeners();
@@ -110,4 +208,19 @@ class TimetableProvider extends ChangeNotifier {
     const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return weekdays[(weekday - 1).clamp(0, 5)];
   }
+}
+
+// Class to hold teacher's class information
+class TeacherClassInfo {
+  final String subject;
+  final String section;
+  final String time;
+  final int semester;
+
+  TeacherClassInfo({
+    required this.subject,
+    required this.section,
+    required this.time,
+    required this.semester,
+  });
 }

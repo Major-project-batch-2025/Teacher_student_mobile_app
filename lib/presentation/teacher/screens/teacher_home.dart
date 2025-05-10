@@ -38,7 +38,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
-      final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
 
       if (authProvider.isLoggedIn && authProvider.isTeacher) {
         final teacher = authProvider.user as Teacher;
@@ -48,16 +47,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           isTeacher: true,
         );
 
-        // 📌 Dynamically initialize timetables based on assignments
-        for (final assignment in teacher.teachingAssignments) {
-          for (final section in assignment.sections) {
-            await timetableProvider.initialize(
-              department: assignment.departmentCode,
-              section: section,
-              semester: assignment.semester,
-            );
-          }
-        }
+        // The personal timetable initialization is now handled in the TeacherPersonalTimetable widget
       }
 
       setState(() {
@@ -123,64 +113,44 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Error loading timetable: $_error',
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _initializeProviders,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _initializeProviders,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hello, ${teacher.name}',
-                          style: const TextStyle(
-                            fontSize: 24.0,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Text(
-                          teacher.department,
-                          style: const TextStyle(
-                            fontSize: 16.0,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 24.0),
-                        const Text(
-                          'Your Weekly Schedule',
-                          style: TextStyle(
-                            fontSize: 20.0,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 16.0),
-                        TeacherPersonalTimetable(teacher: teacher),
-                      ],
-                    ),
-                  ),
+      body: RefreshIndicator(
+        onRefresh: _initializeProviders,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hello, ${teacher.name}',
+                style: const TextStyle(
+                  fontSize: 24.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
+              ),
+              Text(
+                teacher.department,
+                style: const TextStyle(
+                  fontSize: 16.0,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 24.0),
+              const Text(
+                'Your Weekly Schedule',
+                style: TextStyle(
+                  fontSize: 20.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              TeacherPersonalTimetable(teacher: teacher),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

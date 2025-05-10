@@ -16,7 +16,7 @@ class TeacherProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    
+
     // Safety check to ensure user is logged in and is a teacher
     if (!authProvider.isLoggedIn || !authProvider.isTeacher) {
       // Handle case where user is not logged in or not a teacher
@@ -37,9 +37,9 @@ class TeacherProfileScreen extends StatelessWidget {
         ),
       );
     }
-    
+
     final teacher = authProvider.user as Teacher;
-    
+
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
@@ -47,10 +47,7 @@ class TeacherProfileScreen extends StatelessWidget {
         elevation: 0,
         title: const Text(
           'Profile',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
@@ -76,7 +73,7 @@ class TeacherProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16.0),
-                  
+
                   // Teacher name
                   Text(
                     teacher.name,
@@ -86,20 +83,17 @@ class TeacherProfileScreen extends StatelessWidget {
                       color: Colors.white,
                     ),
                   ),
-                  
+
                   // Teacher email
                   Text(
                     teacher.email,
-                    style: const TextStyle(
-                      fontSize: 16.0,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 16.0, color: Colors.grey),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 32.0),
-            
+
             // Teacher details card
             Card(
               color: Colors.grey.shade800,
@@ -117,7 +111,7 @@ class TeacherProfileScreen extends StatelessWidget {
                       subtitle: teacher.department,
                     ),
                     const Divider(color: Colors.grey),
-                    
+
                     // Employee ID
                     _buildInfoTile(
                       icon: Icons.badge,
@@ -129,7 +123,7 @@ class TeacherProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24.0),
-            
+
             // Sections heading
             const Text(
               'Your Sections',
@@ -140,12 +134,12 @@ class TeacherProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16.0),
-            
+
             // List of sections taught
             _buildSectionsList(context, teacher),
-            
+
             const SizedBox(height: 24.0),
-            
+
             // Subjects heading
             const Text(
               'Your Subjects',
@@ -156,12 +150,12 @@ class TeacherProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8.0),
-            
+
             // Subjects list
             _buildSubjectsList(teacher),
-            
+
             const SizedBox(height: 32.0),
-            
+
             // Logout button
             SizedBox(
               width: double.infinity,
@@ -190,42 +184,65 @@ class TeacherProfileScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   // Build list of sections taught by the teacher
   Widget _buildSectionsList(BuildContext context, Teacher teacher) {
-    // For this example, we're focusing on 7th semester sections
-    final sections = ['A', 'B', 'C'];
-    
+    // Get all unique sections from teacher's assignments
+    final sectionsWithSemesters = <String, int>{};
+
+    for (final assignment in teacher.teachingAssignments) {
+      for (final section in assignment.sections) {
+        sectionsWithSemesters[section] = assignment.semester;
+      }
+    }
+
+    if (sectionsWithSemesters.isEmpty) {
+      return const Center(
+        child: Text(
+          'No sections assigned',
+          style: TextStyle(color: Colors.grey, fontSize: 16.0),
+        ),
+      );
+    }
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        childAspectRatio: 1.0,
+        childAspectRatio: 0.9, // Changed from 1.0 to give more height
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
-      itemCount: sections.length,
+      itemCount: sectionsWithSemesters.length,
       itemBuilder: (context, index) {
-        final section = sections[index];
-        return _buildSectionCard(context, section, teacher);
+        final entry = sectionsWithSemesters.entries.elementAt(index);
+        final section = entry.key;
+        final semester = entry.value;
+        return _buildSectionCard(context, section, semester, teacher);
       },
     );
   }
-  
+
   // Build a section card
-  Widget _buildSectionCard(BuildContext context, String section, Teacher teacher) {
+  Widget _buildSectionCard(
+    BuildContext context,
+    String section,
+    int semester,
+    Teacher teacher,
+  ) {
     return GestureDetector(
       onTap: () {
         // Navigate to section timetable view
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => TeacherSectionViewScreen(
-              section: section,
-              semester: 7, // Focus on 7th semester
-              department: teacher.department,
-            ),
+            builder:
+                (context) => TeacherSectionViewScreen(
+                  section: section,
+                  semester: semester,
+                  department: teacher.department,
+                ),
           ),
         );
       },
@@ -234,73 +251,98 @@ class TeacherProfileScreen extends StatelessWidget {
           color: Colors.grey.shade800,
           borderRadius: BorderRadius.circular(8.0),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.people,
-              size: 32.0,
-              color: AppColors.primary,
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              'Section $section',
-              style: const TextStyle(
-                fontSize: 18.0,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.people, size: 28.0, color: AppColors.primary),
+              const SizedBox(height: 4.0),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  ' $section',
+                  style: const TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-            ),
-            const Text(
-              '7th Semester',
-              style: TextStyle(
-                fontSize: 14.0,
-                color: Colors.grey,
+              const SizedBox(height: 2.0),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Sem $semester',
+                  style: const TextStyle(fontSize: 12.0, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-  
+
   // Build subjects list
   Widget _buildSubjectsList(Teacher teacher) {
-    // Get unique subjects
-    final subjects = <String>{};
+    // Get unique subjects with their semesters
+    final subjectsWithSemesters = <String, List<int>>{};
+
     for (final assignment in teacher.teachingAssignments) {
-      if (assignment.semester == 7) {
-        subjects.add(assignment.subject);
+      if (subjectsWithSemesters.containsKey(assignment.subject)) {
+        if (!subjectsWithSemesters[assignment.subject]!.contains(
+          assignment.semester,
+        )) {
+          subjectsWithSemesters[assignment.subject]!.add(assignment.semester);
+        }
+      } else {
+        subjectsWithSemesters[assignment.subject] = [assignment.semester];
       }
     }
-    
+
+    if (subjectsWithSemesters.isEmpty) {
+      return const Center(
+        child: Text(
+          'No subjects assigned',
+          style: TextStyle(color: Colors.grey, fontSize: 16.0),
+        ),
+      );
+    }
+
     return Card(
       color: Colors.grey.shade800,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: subjects.length,
-        separatorBuilder: (_, __) => const Divider(color: Colors.grey, height: 1),
+        itemCount: subjectsWithSemesters.length,
+        separatorBuilder:
+            (_, __) => const Divider(color: Colors.grey, height: 1),
         itemBuilder: (context, index) {
-          final subject = subjects.elementAt(index);
+          final entry = subjectsWithSemesters.entries.elementAt(index);
+          final subject = entry.key;
+          final semesters = entry.value;
+
           return ListTile(
             leading: const CircleAvatar(
               backgroundColor: AppColors.primary,
               child: Icon(Icons.book, color: Colors.white, size: 16),
             ),
-            title: Text(
-              subject,
-              style: const TextStyle(color: Colors.white),
+            title: Text(subject, style: const TextStyle(color: Colors.white)),
+            subtitle: Text(
+              'Semester(s): ${semesters.join(', ')}',
+              style: const TextStyle(color: Colors.grey),
             ),
           );
         },
       ),
     );
   }
-  
+
   // Helper widget to build info tile
   Widget _buildInfoTile({
     required IconData icon,
@@ -308,16 +350,10 @@ class TeacherProfileScreen extends StatelessWidget {
     required String subtitle,
   }) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: AppColors.profileBlue,
-      ),
+      leading: Icon(icon, color: AppColors.profileBlue),
       title: Text(
         title,
-        style: const TextStyle(
-          fontSize: 16.0,
-          color: Colors.grey,
-        ),
+        style: const TextStyle(fontSize: 16.0, color: Colors.grey),
       ),
       subtitle: Text(
         subtitle,
