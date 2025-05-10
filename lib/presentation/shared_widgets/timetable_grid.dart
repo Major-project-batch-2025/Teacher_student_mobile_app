@@ -1,3 +1,5 @@
+// lib/presentation/shared_widgets/timetable_grid.dart
+
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -211,19 +213,57 @@ class _TimetableGridState extends State<TimetableGrid> {
             final timeSlot = sortedTimeSlots[index];
             final classSlot = slotsMap[timeSlot];
 
-            if (classSlot != null && classSlot.course != 'Free') {
-              // Class exists for this time slot
+            if (classSlot != null) {
+              final isCancelled = classSlot.course == 'Cancelled';
+              final isFree = classSlot.course == 'Free' || classSlot.course.isEmpty;
+              
+              if (isCancelled) {
+                // Show cancelled class
+                return GestureDetector(
+                  onTap: () {
+                    if (widget.onClassTap != null) {
+                      widget.onClassTap!(timeSlot, classSlot);
+                    }
+                  },
+                  child: _buildCancelledCard(timeSlot, classSlot),
+                );
+              } else if (!isFree) {
+                // Regular class
+                return GestureDetector(
+                  onTap: () {
+                    if (widget.onClassTap != null) {
+                      widget.onClassTap!(timeSlot, classSlot);
+                    }
+                  },
+                  child: _buildClassCard(timeSlot, classSlot),
+                );
+              } else {
+                // Free slot - MAKE IT CLICKABLE
+                return GestureDetector(
+                  onTap: () {
+                    if (widget.onClassTap != null) {
+                      // Pass the free slot with proper ClassSlotModel
+                      widget.onClassTap!(timeSlot, classSlot);
+                    }
+                  },
+                  child: _buildFreeSlot(timeSlot),
+                );
+              }
+            } else {
+              // Create a default free slot if no data exists
+              final defaultFreeSlot = ClassSlotModel(
+                course: 'Free',
+                teacher: '',
+              );
+              
               return GestureDetector(
                 onTap: () {
                   if (widget.onClassTap != null) {
-                    widget.onClassTap!(timeSlot, classSlot);
+                    widget.onClassTap!(timeSlot, defaultFreeSlot);
                   }
                 },
-                child: _buildClassCard(timeSlot, classSlot),
+                child: _buildFreeSlot(timeSlot),
               );
-            } else {
-              // Free slot
-              return _buildFreeSlot(timeSlot);
             }
           },
         );
@@ -319,6 +359,85 @@ class _TimetableGridState extends State<TimetableGrid> {
                   ),
                 ],
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCancelledCard(String time, ClassSlotModel classSlot) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6.0),
+      decoration: BoxDecoration(
+        color: Colors.red.shade900.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(color: Colors.red.withOpacity(0.5), width: 1.0),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12.0),
+          border: Border(left: BorderSide(color: Colors.red, width: 6.0)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.access_time, size: 16.0, color: Colors.grey),
+                  const SizedBox(width: 8.0),
+                  Text(time, style: const TextStyle(color: Colors.grey)),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 4.0,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4.0),
+                    ),
+                    child: const Text(
+                      'CANCELLED',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12.0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10.0),
+              Text(
+                'CANCELLED',
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 18.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8.0),
+              if (classSlot.teacher.isNotEmpty)
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.person_outline,
+                      size: 16.0,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 8.0),
+                    Expanded(
+                      child: Text(
+                        'Cancelled by: ${classSlot.teacher}',
+                        style: const TextStyle(color: Colors.grey),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),

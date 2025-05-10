@@ -200,18 +200,18 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
                   const SizedBox(height: 16.0),
                   
                   // Debug Login Info (for testing, remove in production)
-                  if (true) // Set to false in production
-                    const Padding(
-                      padding: EdgeInsets.only(top: 32.0),
-                      child: Text(
-                        'Test Login: Email=teacher@example.com, Password=password123',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12.0,
-                        ),
-                      ),
-                    ),
+                  // if (true) // Set to false in production
+                  //   const Padding(
+                  //     padding: EdgeInsets.only(top: 32.0),
+                  //     child: Text(
+                  //       'Test Login: Email=teacher@example.com, Password=password123',
+                  //       textAlign: TextAlign.center,
+                  //       style: TextStyle(
+                  //         color: Colors.grey,
+                  //         fontSize: 12.0,
+                  //       ),
+                  //     ),
+                  //   ),
                 ],
               ),
             ),

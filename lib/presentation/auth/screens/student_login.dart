@@ -191,19 +191,19 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                     ),
                   ),
                   
-                  // Debug Login Info (for testing, remove in production)
-                  if (true) // Set to false in production
-                    const Padding(
-                      padding: EdgeInsets.only(top: 32.0),
-                      child: Text(
-                        'Test Login: USN=CS001, DOB=01/01/2000',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12.0,
-                        ),
-                      ),
-                    ),
+                  // // Debug Login Info (for testing, remove in production)
+                  // if (true) // Set to false in production
+                  //   const Padding(
+                  //     padding: EdgeInsets.only(top: 32.0),
+                  //     child: Text(
+                  //       'Test Login: USN=CS001, DOB=01/01/2000',
+                  //       textAlign: TextAlign.center,
+                  //       style: TextStyle(
+                  //         color: Colors.grey,
+                  //         fontSize: 12.0,
+                  //       ),
+                  //     ),
+                  //   ),
                 ],
               ),
             ),
