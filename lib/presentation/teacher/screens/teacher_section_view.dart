@@ -194,15 +194,7 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                     _showActionDialog(classSlot, teacher, ActionType.cancel, time);
                   },
                 ),
-                _buildActionButton(
-                  icon: Icons.event_repeat,
-                  label: 'Reschedule Class',
-                  color: Colors.orange,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showActionDialog(classSlot, teacher, ActionType.reschedule, time);
-                  },
-                ),
+                // Removed reschedule action button
               ] else if (isFreeSlot) ...[
                 _buildActionButton(
                   icon: Icons.add_circle,
@@ -210,17 +202,10 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                   color: Colors.green,
                   onTap: () async {
                     Navigator.pop(context);
-                    // Only check for teacher conflict, removed time restriction
-                    final hasConflict = await _checkTeacherConflict(time, teacher);
-                    if (!hasConflict) {
+                    // Check if the teacher can add an extra class at this time
+                    final canAddClass = await _canAddExtraClass(time, teacher);
+                    if (canAddClass) {
                       _showActionDialog(classSlot, teacher, ActionType.extraClass, time);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('You already have a class in another section at this time'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
                     }
                   },
                 ),
@@ -243,13 +228,105 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
     );
   }
 
+  // Check if teacher can add extra class
+  Future<bool> _canAddExtraClass(String time, Teacher teacher) async {
+    try {
+      // Parse the time slot to get start time
+      final parts = time.split('-');
+      final startTime = parts[0].trim();
+      
+      // Parse hours and minutes
+      final timeParts = startTime.split(':');
+      final hour = int.parse(timeParts[0]);
+      final minute = int.parse(timeParts[1]);
+      
+      // Get current time
+      final now = DateTime.now();
+      final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
+      final selectedDate = timetableProvider.selectedDate;
+      
+      // Create DateTime for the class start time on the selected day
+      DateTime classDateTime;
+      
+      // Handle 12-hour format (assuming times after 7 are PM)
+      final hour24 = (hour < 7) ? hour + 12 : hour;
+      
+      // Create the class date-time for comparison
+      classDateTime = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        hour24,
+        minute,
+      );
+      
+      // If the selected date is in the past or today but the time has passed
+      if (classDateTime.isBefore(now)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot add extra class for a past time slot'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return false;
+      }
+      
+      // Check if class is at least 2 hours in the future
+      final timeDifference = classDateTime.difference(now);
+      print('Current time: $now');
+      print('Class time: $classDateTime');
+      print('Time difference in hours: ${timeDifference.inHours}');
+      
+      if (timeDifference.inHours < 2) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Extra classes must be scheduled at least 2 hours in advance.\n'
+              'Current time: ${now.hour}:${now.minute.toString().padLeft(2, '0')}\n'
+              'Class time: ${classDateTime.hour}:${classDateTime.minute.toString().padLeft(2, '0')}'
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        return false;
+      }
+      
+      // Check for conflicts with other sections at this time
+      final hasConflict = await _checkTeacherConflict(time, teacher);
+      if (hasConflict) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You already have a class in another section at this time'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return false;
+      }
+      
+      return true;
+    } catch (e) {
+      print('Error checking if can add extra class: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return false;
+    }
+  }
+
   // Check if teacher has conflict at this time slot
   Future<bool> _checkTeacherConflict(String timeSlot, Teacher teacher) async {
     try {
       final firestore = FirebaseFirestore.instance;
       final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
       final selectedDate = timetableProvider.selectedDate;
-      final dayName = _dayIndexToName(selectedDate.weekday - 1).toLowerCase();
+      final dayName = _dayIndexToName(selectedDate.weekday - 1);
+      
+      // Format time slot to match Firebase format (no spaces)
+      final formattedTimeSlot = timeSlot.replaceAll(' ', '');
       
       // Check all sections where this teacher has assignments
       for (final assignment in teacher.teachingAssignments) {
@@ -275,7 +352,7 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
               final dayData = dayDoc.data();
               
               // Check if teacher has a class at this time slot
-              final slotData = dayData[timeSlot];
+              final slotData = dayData[formattedTimeSlot];
               if (slotData != null && slotData is Map<String, dynamic>) {
                 final slotTeacher = slotData['teacher'] as String?;
                 if (slotTeacher == teacher.name) {
