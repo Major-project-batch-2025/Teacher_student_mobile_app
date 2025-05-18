@@ -79,6 +79,12 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Get FCM token first
+      final fcmToken = await NotificationService.getToken();
+      if (fcmToken == null) {
+        throw Exception('Failed to get FCM token');
+      }
+
       // Query Firestore for student document matching USN and DOB
       final snapshot =
           await FirebaseFirestore.instance
@@ -93,6 +99,12 @@ class AuthProvider extends ChangeNotifier {
         // Document found, build Student object
         final doc = snapshot.docs.first;
         final data = doc.data();
+
+        // Update the document with the new tokenId
+        await FirebaseFirestore.instance
+            .collection('Students')
+            .doc(doc.id)
+            .update({'tokenId': fcmToken});
 
         // Extract section and semester with careful null handling
         final section = data['section']?.toString() ?? 'A';
