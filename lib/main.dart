@@ -1,10 +1,11 @@
 // lib/main.dart
-// Purpose: App entry point 
+// Purpose: App entry point
 // configures theme based on colors.dart
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:timetable_app/firebase/notification_service.dart';
 import 'package:timetable_app/firebase_options.dart';
 
 // Core
@@ -26,9 +27,8 @@ import 'presentation/auth/screens/login_role_select.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await NotificationService.initialize();
 
   runApp(const MyApp());
 }
@@ -75,12 +75,8 @@ class MyApp extends StatelessWidget {
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
-            bodyLarge: TextStyle(
-              color: AppColors.textPrimary,
-            ),
-            bodyMedium: TextStyle(
-              color: AppColors.textSecondary,
-            ),
+            bodyLarge: TextStyle(color: AppColors.textPrimary),
+            bodyMedium: TextStyle(color: AppColors.textSecondary),
           ),
           inputDecorationTheme: InputDecorationTheme(
             filled: true,

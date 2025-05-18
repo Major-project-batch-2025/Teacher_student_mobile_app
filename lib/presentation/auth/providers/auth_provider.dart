@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:timetable_app/firebase/notification_service.dart';
 import '../../../domain/entities/student.dart';
 import '../../../domain/entities/teacher.dart';
 import '../../../domain/entities/user.dart';
@@ -58,10 +59,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Student login with USN and DOB
-  Future<bool> studentLogin({
-    required String usn,
-    required String dob,
-  }) async {
+  Future<bool> studentLogin({required String usn, required String dob}) async {
     // Validate inputs
     if (!_studentValidator.validateUSN(usn)) {
       _errorMessage = 'Invalid USN format. Please use the correct format.';
@@ -82,11 +80,14 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       // Query Firestore for student document matching USN and DOB
-      final snapshot = await FirebaseFirestore.instance
-          .collection('Students')  // Note: Using 'Students' collection instead of 'Student'
-          .where('usn', isEqualTo: usn.toUpperCase())
-          .where('dob', isEqualTo: dob)
-          .get();
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection(
+                'Students',
+              ) // Note: Using 'Students' collection instead of 'Student'
+              .where('usn', isEqualTo: usn.toUpperCase())
+              .where('dob', isEqualTo: dob)
+              .get();
 
       if (snapshot.docs.isNotEmpty) {
         // Document found, build Student object
@@ -101,7 +102,9 @@ class AuthProvider extends ChangeNotifier {
           id: doc.id,
           name: data['name']?.toString() ?? 'Student',
           email: data['email']?.toString() ?? '',
-          rollNumber: data['usn']?.toString() ?? '',  // Note: Using 'usn' field instead of 'rollNumber'
+          rollNumber:
+              data['usn']?.toString() ??
+              '', // Note: Using 'usn' field instead of 'rollNumber'
           department: data['department']?.toString() ?? 'Unknown',
           section: section,
           semester: semester,
@@ -150,26 +153,43 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Get FCM token
+      final fcmToken = await NotificationService.getToken();
+      if (fcmToken == null) {
+        throw Exception('Failed to get FCM token');
+      }
+
       // Query Firestore for teacher document matching email and password
-      final snapshot = await FirebaseFirestore.instance
-          .collection('Teachers')  // Note: Using 'Teachers' collection instead of 'Teacher'
-          .where('email', isEqualTo: email)
-          .where('password', isEqualTo: password)
-          .limit(1)
-          .get();
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection(
+                'Teachers',
+              ) // Note: Using 'Teachers' collection instead of 'Teacher'
+              .where('email', isEqualTo: email)
+              .where('password', isEqualTo: password)
+              .limit(1)
+              .get();
 
       if (snapshot.docs.isNotEmpty) {
         final doc = snapshot.docs.first;
+
+        // Update the document with the new tokenId
+        await FirebaseFirestore.instance
+            .collection('Teachers')
+            .doc(doc.id)
+            .update({'tokenId': fcmToken});
+
         final data = doc.data();
 
         // Parse assignment data - this matches the structure shown in your Firebase screenshot
         final List<TeachingAssignment> teachingAssignments = [];
-        
-        if (data['assignment'] != null) {  // Note: Using 'assignment' field instead of 'teachingAssignments'
+
+        if (data['assignment'] != null) {
+          // Note: Using 'assignment' field instead of 'teachingAssignments'
           // Handle assignments as they appear in your database
           if (data['assignment'] is List) {
             final assignmentList = data['assignment'] as List;
-            
+
             for (final item in assignmentList) {
               if (item is Map<String, dynamic>) {
                 // Extract sections as a list
@@ -177,15 +197,18 @@ class AuthProvider extends ChangeNotifier {
                 if (item['sections'] is List) {
                   sections = List<String>.from(item['sections']);
                 }
-                
-                teachingAssignments.add(TeachingAssignment(
-                  subject: item['subject']?.toString() ?? 'Unknown',
-                  departmentCode: data['department']?.toString() ?? 'Unknown',
-                  sections: sections,
-                  semester: item['semester'] != null 
-                      ? int.tryParse(item['semester'].toString()) ?? 0 
-                      : 0,
-                ));
+
+                teachingAssignments.add(
+                  TeachingAssignment(
+                    subject: item['subject']?.toString() ?? 'Unknown',
+                    departmentCode: data['department']?.toString() ?? 'Unknown',
+                    sections: sections,
+                    semester:
+                        item['semester'] != null
+                            ? int.tryParse(item['semester'].toString()) ?? 0
+                            : 0,
+                  ),
+                );
               }
             }
           }
@@ -196,7 +219,9 @@ class AuthProvider extends ChangeNotifier {
           id: doc.id,
           name: data['name']?.toString() ?? 'Unknown',
           email: data['email']?.toString() ?? '',
-          employeeId: data['tId']?.toString() ?? '',  // Note: Using 'tId' field instead of 'employeeId'
+          employeeId:
+              data['tId']?.toString() ??
+              '', // Note: Using 'tId' field instead of 'employeeId'
           department: data['department']?.toString() ?? 'Unknown',
           teachingAssignments: teachingAssignments,
         );
@@ -218,7 +243,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Logout
+  // Modify logout to remove FCM token
   Future<void> logout() async {
     _status = AuthStatus.unauthenticated;
     _user = null;

@@ -10,7 +10,7 @@ import '../../../core/utils/date_helpers.dart';
 import '../../../domain/entities/teacher.dart';
 import '../../../domain/entities/timetable.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../providers/timetable_provider.dart';
+// import '../../providers/timetable_provider.dart';
 
 class ExtraClassForm extends StatefulWidget {
   final String section;
@@ -366,7 +366,7 @@ class _ExtraClassFormState extends State<ExtraClassForm> {
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
+      // final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
       
       if (!authProvider.isLoggedIn || !authProvider.isTeacher) {
         return;
