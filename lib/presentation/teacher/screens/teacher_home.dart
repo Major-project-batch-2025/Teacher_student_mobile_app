@@ -5,7 +5,7 @@ import '../../../core/constants.dart';
 import '../../../domain/entities/teacher.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
-import '../../providers/timetable_provider.dart';
+// import '../../providers/timetable_provider.dart';
 import '../../shared_widgets/notification_bell.dart';
 import '../widgets/teacher_personal_timetable.dart';
 import 'teacher_profile.dart';
