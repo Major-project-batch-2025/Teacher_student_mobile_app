@@ -1,6 +1,3 @@
-// lib/data/models/notification_model.dart
-// Purpose: Data model for notifications with JSON serialization
-
 import 'package:equatable/equatable.dart';
 
 enum NotificationType {
@@ -10,6 +7,7 @@ enum NotificationType {
   announcement,
   actionApproved,
   actionDenied,
+  other,
 }
 
 class NotificationModel extends Equatable {
@@ -18,73 +16,21 @@ class NotificationModel extends Equatable {
   final String message;
   final NotificationType type;
   final DateTime timestamp;
-  final bool isRead;
   final String userId;
-  final Map<String, dynamic>? data; // Additional data like class details
-  
+  final Map<String, dynamic> data;
+  final bool isRead;
+
   const NotificationModel({
     required this.id,
     required this.title,
     required this.message,
     required this.type,
     required this.timestamp,
-    this.isRead = false,
     required this.userId,
-    this.data,
+    required this.data,
+    this.isRead = false,
   });
-  
-  @override
-  List<Object?> get props => [id, title, message, type, timestamp, isRead, userId, data];
-  
-  // Factory constructor to create a NotificationModel from JSON
-  factory NotificationModel.fromJson(Map<String, dynamic> json) {
-    return NotificationModel(
-      id: json['id'],
-      title: json['title'],
-      message: json['message'],
-      type: _parseNotificationType(json['type']),
-      timestamp: DateTime.parse(json['timestamp']),
-      isRead: json['isRead'] ?? false,
-      userId: json['userId'],
-      data: json['data'],
-    );
-  }
-  
-  // Convert NotificationModel to JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'title': title,
-      'message': message,
-      'type': type.toString().split('.').last,
-      'timestamp': timestamp.toIso8601String(),
-      'isRead': isRead,
-      'userId': userId,
-      'data': data,
-    };
-  }
-  
-  // Helper to parse NotificationType from string
-  static NotificationType _parseNotificationType(String typeStr) {
-    switch (typeStr.toLowerCase()) {
-      case 'classcancelled':
-        return NotificationType.classCancelled;
-      case 'classrescheduled':
-        return NotificationType.classRescheduled;
-      case 'extraclass':
-        return NotificationType.extraClass;
-      case 'announcement':
-        return NotificationType.announcement;
-      case 'actionapproved':
-        return NotificationType.actionApproved;
-      case 'actiondenied':
-        return NotificationType.actionDenied;
-      default:
-        return NotificationType.announcement;
-    }
-  }
-  
-  // Mark notification as read
+
   NotificationModel markAsRead() {
     return NotificationModel(
       id: id,
@@ -92,27 +38,93 @@ class NotificationModel extends Equatable {
       message: message,
       type: type,
       timestamp: timestamp,
-      isRead: true,
       userId: userId,
       data: data,
+      isRead: true,
     );
   }
-  
-  // Get icon for notification based on type
-  String get icon {
-    switch (type) {
-      case NotificationType.classCancelled:
-        return 'cancel';
-      case NotificationType.classRescheduled:
-        return 'event_repeat';
-      case NotificationType.extraClass:
-        return 'add_circle';
-      case NotificationType.announcement:
-        return 'announcement';
-      case NotificationType.actionApproved:
-        return 'check_circle';
-      case NotificationType.actionDenied:
-        return 'cancel';
+
+  NotificationModel copyWith({
+    String? id,
+    String? title,
+    String? message,
+    NotificationType? type,
+    DateTime? timestamp,
+    String? userId,
+    Map<String, dynamic>? data,
+    bool? isRead,
+  }) {
+    return NotificationModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      type: type ?? this.type,
+      timestamp: timestamp ?? this.timestamp,
+      userId: userId ?? this.userId,
+      data: data ?? this.data,
+      isRead: isRead ?? this.isRead,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    id,
+    title,
+    message,
+    type,
+    timestamp,
+    userId,
+    data,
+    isRead,
+  ];
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'message': message,
+      'type': type.toString().split('.').last,
+      'timestamp': timestamp.toIso8601String(),
+      'userId': userId,
+      'data': data,
+      'isRead': isRead,
+    };
+  }
+
+  // Add fromJson factory constructor as well for completeness
+  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    return NotificationModel(
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      message: json['message'] ?? '',
+      type: _parseNotificationType(json['type'] ?? 'other'),
+      timestamp:
+          json['timestamp'] is String
+              ? DateTime.parse(json['timestamp'])
+              : (json['timestamp'] as DateTime),
+      userId: json['userId'] ?? '',
+      data: json['data'] as Map<String, dynamic>? ?? {},
+      isRead: json['isRead'] ?? false,
+    );
+  }
+
+  // Helper method to parse notification type
+  static NotificationType _parseNotificationType(String type) {
+    switch (type.toLowerCase()) {
+      case 'classcancelled':
+        return NotificationType.classCancelled;
+      case 'classrescheduled':
+        return NotificationType.classRescheduled;
+      case 'extraclass':
+        return NotificationType.extraClass;
+      case 'actionapproved':
+        return NotificationType.actionApproved;
+      case 'actiondenied':
+        return NotificationType.actionDenied;
+      case 'announcement':
+        return NotificationType.announcement;
+      default:
+        return NotificationType.other;
     }
   }
 }

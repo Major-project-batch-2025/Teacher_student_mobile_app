@@ -1,20 +1,9 @@
-// lib/main.dart
-// Purpose: App entry point
-// configures theme based on colors.dart
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:timetable_app/firebase/notification_service.dart';
 import 'package:timetable_app/firebase_options.dart';
-
-// Core
 import 'core/constants.dart';
-
-// Firebase services (to be implemented later)
-// import 'firebase/firebase_service.dart';
-// import 'firebase/auth_service.dart';
-// import 'firebase/notification_service.dart';
 
 // Providers
 import 'presentation/providers/timetable_provider.dart';
@@ -119,6 +108,10 @@ class MyApp extends StatelessWidget {
           ),
         ),
         home: const LoginRoleSelectScreen(),
+        builder: (context, child) {
+          NotificationService.setContext(context);
+          return child!;
+        },
       ),
     );
   }

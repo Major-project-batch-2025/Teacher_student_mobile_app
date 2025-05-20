@@ -34,4 +34,16 @@ module.exports = {
     "indent": ["error", 2],
     "import/no-unresolved": ["error", {ignore: ["^firebase-"]}],
   },
+  overrides: [
+    {
+      files: ["*.ts"],
+      parserOptions: {
+        project: ["tsconfig.json", "tsconfig.dev.json"],
+      },
+    },
+    {
+      files: ["*.js"],
+      parser: "espree", // Use regular ESLint parser for JS files
+    },
+  ],
 };
