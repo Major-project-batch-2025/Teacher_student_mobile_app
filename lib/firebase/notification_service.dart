@@ -2,6 +2,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:timetable_app/presentation/student/screens/student_notifications.dart';
+import 'package:timetable_app/presentation/teacher/screens/teacher_notifications.dart';
 import '../data/models/notification_model.dart';
 import '../presentation/providers/notification_provider.dart';
 
@@ -91,18 +93,61 @@ class NotificationService {
           listen: false,
         ).addNotification(notification);
 
-        // Show a snackbar
-        ScaffoldMessenger.of(_context!).showSnackBar(
-          SnackBar(
-            content: Text(notification.title),
-            action: SnackBarAction(
-              label: 'View',
-              onPressed: () {
-                // Navigate to notifications screen
-              },
+        // Show a material banner instead of snackbar
+        ScaffoldMessenger.of(_context!).showMaterialBanner(
+          MaterialBanner(
+            backgroundColor: Colors.grey.shade900,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  notification.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  notification.message,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ],
             ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(_context!).hideCurrentMaterialBanner();
+                },
+                child: const Text('Dismiss'),
+              ),
+              TextButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(_context!).hideCurrentMaterialBanner();
+                  // Navigate to notifications screen based on user type
+                  Navigator.push(
+                    _context!,
+                    MaterialPageRoute(
+                      builder:
+                          (context) =>
+                              notification.data['isTeacher'] == true
+                                  ? const TeacherNotificationsScreen()
+                                  : const StudentNotificationsScreen(),
+                    ),
+                  );
+                },
+                child: const Text('View'),
+              ),
+            ],
           ),
         );
+
+        // Auto-dismiss after 3 seconds
+        Future.delayed(const Duration(seconds: 5), () {
+          if (_context!.mounted) {
+            ScaffoldMessenger.of(_context!).hideCurrentMaterialBanner();
+          }
+        });
       }
     }
   }
