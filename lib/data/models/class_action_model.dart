@@ -1,5 +1,5 @@
 // lib/data/models/class_action_model.dart
-// Purpose: Data model for class actions with JSON serialization
+// Purpose: Data model for class actions with JSON serialization - Updated with swap functionality
 
 import '../../domain/entities/class_action.dart';
 
@@ -18,6 +18,13 @@ class ClassActionModel extends ClassAction {
     super.isApproved = false,
     super.approvedBy,
     super.approvedAt,
+    // New swap-related parameters
+    super.swapWithTeacherId,
+    super.swapWithTeacherName,
+    super.swapTargetSlotId,
+    super.swapTargetSection,
+    super.swapTargetDay,
+    super.swapTargetTime,
   });
 
   // Factory constructor to create a ClassActionModel from JSON
@@ -38,6 +45,13 @@ class ClassActionModel extends ClassAction {
       approvedAt: json['approvedAt'] != null 
           ? DateTime.parse(json['approvedAt']) 
           : null,
+      // Parse new swap-related fields
+      swapWithTeacherId: json['swapWithTeacherId'],
+      swapWithTeacherName: json['swapWithTeacherName'],
+      swapTargetSlotId: json['swapTargetSlotId'],
+      swapTargetSection: json['swapTargetSection'],
+      swapTargetDay: json['swapTargetDay'],
+      swapTargetTime: json['swapTargetTime'],
     );
   }
 
@@ -57,10 +71,17 @@ class ClassActionModel extends ClassAction {
       'isApproved': isApproved,
       'approvedBy': approvedBy,
       'approvedAt': approvedAt?.toIso8601String(),
+      // Include new swap-related fields in JSON
+      'swapWithTeacherId': swapWithTeacherId,
+      'swapWithTeacherName': swapWithTeacherName,
+      'swapTargetSlotId': swapTargetSlotId,
+      'swapTargetSection': swapTargetSection,
+      'swapTargetDay': swapTargetDay,
+      'swapTargetTime': swapTargetTime,
     };
   }
 
-  // Helper to parse ActionType from string
+  // Helper to parse ActionType from string - Updated with swap case
   static ActionType _parseActionType(String typeStr) {
     switch (typeStr.toLowerCase()) {
       case 'cancel':
@@ -71,6 +92,8 @@ class ClassActionModel extends ClassAction {
         return ActionType.extraClass;
       case 'normalize':
         return ActionType.normalize;
+      case 'swap': // New case for swap action
+        return ActionType.swap;
       default:
         return ActionType.cancel;
     }
@@ -92,6 +115,13 @@ class ClassActionModel extends ClassAction {
       isApproved: action.isApproved,
       approvedBy: action.approvedBy,
       approvedAt: action.approvedAt,
+      // Include swap-related fields
+      swapWithTeacherId: action.swapWithTeacherId,
+      swapWithTeacherName: action.swapWithTeacherName,
+      swapTargetSlotId: action.swapTargetSlotId,
+      swapTargetSection: action.swapTargetSection,
+      swapTargetDay: action.swapTargetDay,
+      swapTargetTime: action.swapTargetTime,
     );
   }
 }

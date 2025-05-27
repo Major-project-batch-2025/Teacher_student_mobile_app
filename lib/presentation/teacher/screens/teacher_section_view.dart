@@ -1,4 +1,5 @@
 // lib/presentation/teacher/screens/teacher_section_view.dart
+// Purpose: Teacher section view with added swap functionality
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +14,7 @@ import '../../providers/timetable_provider.dart';
 import '../../shared_widgets/action_dialog.dart';
 import '../../shared_widgets/notification_bell.dart';
 import '../../shared_widgets/timetable_grid.dart';
+import '../../shared_widgets/swap_request_dailog.dart'; // New import
 import 'class_action_screen.dart';
 
 class TeacherSectionViewScreen extends StatefulWidget {
@@ -148,6 +150,9 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
     // Check if the slot is free
     final isFreeSlot = classSlot.course == 'Free' || classSlot.course.isEmpty;
 
+    // Check if this is a future class (for swap functionality)
+    final isFutureClass = _isFutureClass(time);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.grey.shade900,
@@ -173,6 +178,7 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                   ),
                 ),
               const Divider(color: Colors.grey),
+              
               if (isCancelled) ...[
                 const ListTile(
                   title: Text(
@@ -184,7 +190,8 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-              ] else if (isTeacherClass && !isFreeSlot) ...[
+              ] else if (isTeacherClass && !isFreeSlot && isFutureClass) ...[
+                // Teacher's own future class - can cancel
                 _buildActionButton(
                   icon: Icons.cancel,
                   label: 'Cancel Class',
@@ -194,8 +201,19 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                     _showActionDialog(classSlot, teacher, ActionType.cancel, time);
                   },
                 ),
-                // Removed reschedule action button
-              ] else if (isFreeSlot) ...[
+              ] else if (!isTeacherClass && !isFreeSlot && isFutureClass) ...[
+                // Another teacher's future class - can request swap
+                _buildActionButton(
+                  icon: Icons.swap_horiz,
+                  label: 'Request Swap',
+                  color: Colors.orange,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showSwapDialog(classSlot, teacher, time);
+                  },
+                ),
+              ] else if (isFreeSlot && isFutureClass) ...[
+                // Future free slot - can add extra class
                 _buildActionButton(
                   icon: Icons.add_circle,
                   label: 'Add Extra Class',
@@ -209,10 +227,35 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
                     }
                   },
                 ),
-              ] else if (!isTeacherClass) ...[
+              ] else if (!isFutureClass && !isFreeSlot) ...[
+                // Past or present class
                 const ListTile(
                   title: Text(
-                    "You can only manage your own classes",
+                    "Cannot modify past or current classes",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16.0,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ] else if (!isTeacherClass && !isFreeSlot && !isFutureClass) ...[
+                // Another teacher's past class
+                const ListTile(
+                  title: Text(
+                    "Cannot modify past classes",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16.0,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ] else ...[
+                // Default case - no actions available
+                const ListTile(
+                  title: Text(
+                    "No actions available for this slot",
                     style: TextStyle(
                       color: Colors.grey,
                       fontSize: 16.0,
@@ -228,7 +271,79 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
     );
   }
 
-  // Check if teacher can add extra class
+  // Check if a class is in the future (at least 2 hours from now)
+  bool _isFutureClass(String timeSlot) {
+    try {
+      // Parse the time slot to get start time
+      final parts = timeSlot.split('-');
+      final startTime = parts[0].trim();
+      
+      // Parse hours and minutes
+      final timeParts = startTime.split(':');
+      final hour = int.parse(timeParts[0]);
+      final minute = int.parse(timeParts[1]);
+      
+      // Get current time and selected date
+      final now = DateTime.now();
+      final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
+      final selectedDate = timetableProvider.selectedDate;
+      
+      // Handle 12-hour format (assuming times after 7 are PM)
+      final hour24 = (hour < 7) ? hour + 12 : hour;
+      
+      // Create the class date-time for comparison
+      final classDateTime = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        hour24,
+        minute,
+      );
+      
+      // Check if class is at least 2 hours in the future
+      final timeDifference = classDateTime.difference(now);
+      return timeDifference.inHours >= 2;
+      
+    } catch (e) {
+      print('Error checking if class is future: $e');
+      return false;
+    }
+  }
+
+  // Show swap request dialog
+  void _showSwapDialog(ClassSlotModel classSlotModel, Teacher teacher, String time) {
+    final provider = Provider.of<TimetableProvider>(context, listen: false);
+    final selectedDate = provider.selectedDate;
+    
+    final parts = time.split('-');
+    final startTime = parts[0].trim();
+    final endTime = parts.length > 1 ? parts[1].trim() : '';
+    final duration = _calculateDuration(startTime, endTime);
+
+    // Convert ClassSlotModel to ClassSlot entity
+    final classSlotEntity = classSlotModel.toEntity(
+      id: '${widget.section}_${widget.semester}_${selectedDate.weekday - 1}_$time',
+      subject: classSlotModel.course,
+      dayOfWeek: selectedDate.weekday - 1,
+      startTime: startTime,
+      endTime: endTime,
+      durationMinutes: duration,
+      updatedAt: DateTime.now(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => SwapRequestDialog(
+        originalClassSlot: classSlotEntity,
+        originalSection: widget.section,
+        originalSemester: widget.semester,
+        originalDepartment: widget.department,
+        targetTeacherName: classSlotModel.teacher,
+      ),
+    );
+  }
+
+  // Check if teacher can add extra class (existing method - no changes)
   Future<bool> _canAddExtraClass(String time, Teacher teacher) async {
     try {
       // Parse the time slot to get start time
@@ -237,8 +352,8 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
       
       // Parse hours and minutes
       final timeParts = startTime.split(':');
-      final hour = int.parse(timeParts[0]);
-      final minute = int.parse(timeParts[1]);
+      final hour = int.tryParse(timeParts[0]) ?? 0;
+      final minute = int.tryParse(timeParts[1]) ?? 0;
       
       // Get current time
       final now = DateTime.now();
@@ -273,9 +388,6 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
       
       // Check if class is at least 2 hours in the future
       final timeDifference = classDateTime.difference(now);
-      print('Current time: $now');
-      print('Class time: $classDateTime');
-      print('Time difference in hours: ${timeDifference.inHours}');
       
       if (timeDifference.inHours < 2) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -317,7 +429,7 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
     }
   }
 
-  // Check if teacher has conflict at this time slot
+  // Check if teacher has conflict at this time slot (existing method - no changes)
   Future<bool> _checkTeacherConflict(String timeSlot, Teacher teacher) async {
     try {
       final firestore = FirebaseFirestore.instance;
@@ -371,11 +483,13 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
     }
   }
 
+  // Helper method to convert day index to name
   String _dayIndexToName(int index) {
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     return days[index % 6];
   }
 
+  // Show action dialog (existing method - no changes)
   void _showActionDialog(ClassSlotModel classSlotModel, Teacher teacher,
       ActionType actionType, String time) {
     final provider = Provider.of<TimetableProvider>(context, listen: false);
@@ -410,6 +524,7 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
     );
   }
 
+  // Calculate duration (existing method - no changes)
   int _calculateDuration(String start, String end) {
     try {
       final startParts = start.split(':');
@@ -433,6 +548,7 @@ class _TeacherSectionViewScreenState extends State<TeacherSectionViewScreen> {
     }
   }
 
+  // Build action button (existing method - no changes)
   Widget _buildActionButton({
     required IconData icon,
     required String label,

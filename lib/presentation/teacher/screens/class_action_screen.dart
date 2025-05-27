@@ -94,6 +94,10 @@ class ClassActionScreen extends StatelessWidget {
         actionColor = AppColors.primary;
         actionIcon = Icons.refresh;
         break;
+      case ActionType.swap:
+        actionColor = Colors.blue;
+        actionIcon = Icons.swap_horiz;
+        break;
     }
     
     // Format date

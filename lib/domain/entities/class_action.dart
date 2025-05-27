@@ -1,5 +1,5 @@
 // lib/domain/entities/class_action.dart
-// Purpose: Model for representing class actions like cancellations, rescheduling, or extra classes
+// Purpose: Model for representing class actions like cancellations, rescheduling, extra classes, and swapping
 
 import 'package:equatable/equatable.dart';
 
@@ -8,6 +8,7 @@ enum ActionType {
   reschedule,
   extraClass,
   normalize, // Revert back to original state
+  swap, // New: Swap class with another teacher
 }
 
 class ClassAction extends Equatable {
@@ -25,6 +26,14 @@ class ClassAction extends Equatable {
   final String? approvedBy;
   final DateTime? approvedAt;
   
+  // New fields for swap functionality
+  final String? swapWithTeacherId; // ID of teacher to swap with
+  final String? swapWithTeacherName; // Name of teacher to swap with
+  final String? swapTargetSlotId; // The slot to swap with
+  final String? swapTargetSection; // Section of the target slot
+  final String? swapTargetDay; // Day of the target slot
+  final String? swapTargetTime; // Time of the target slot
+  
   const ClassAction({
     required this.id,
     required this.actionType,
@@ -39,6 +48,13 @@ class ClassAction extends Equatable {
     this.isApproved = false,
     this.approvedBy,
     this.approvedAt,
+    // New swap-related parameters
+    this.swapWithTeacherId,
+    this.swapWithTeacherName,
+    this.swapTargetSlotId,
+    this.swapTargetSection,
+    this.swapTargetDay,
+    this.swapTargetTime,
   });
   
   @override
@@ -46,6 +62,9 @@ class ClassAction extends Equatable {
     id, actionType, teacherId, teacherName, originSlotId,
     targetSlotId, timestamp, reason, subject, expiresAt,
     isApproved, approvedBy, approvedAt,
+    // Include swap fields in props
+    swapWithTeacherId, swapWithTeacherName, swapTargetSlotId,
+    swapTargetSection, swapTargetDay, swapTargetTime,
   ];
   
   // Get the user-friendly string for action type
@@ -59,6 +78,8 @@ class ClassAction extends Equatable {
         return 'Extra Class';
       case ActionType.normalize:
         return 'Normalized';
+      case ActionType.swap:
+        return 'Swap Request'; // New action type string
     }
   }
   
@@ -83,6 +104,13 @@ class ClassAction extends Equatable {
     bool? isApproved,
     String? approvedBy,
     DateTime? approvedAt,
+    // New swap parameters
+    String? swapWithTeacherId,
+    String? swapWithTeacherName,
+    String? swapTargetSlotId,
+    String? swapTargetSection,
+    String? swapTargetDay,
+    String? swapTargetTime,
   }) {
     return ClassAction(
       id: id ?? this.id,
@@ -98,6 +126,13 @@ class ClassAction extends Equatable {
       isApproved: isApproved ?? this.isApproved,
       approvedBy: approvedBy ?? this.approvedBy,
       approvedAt: approvedAt ?? this.approvedAt,
+      // New swap fields
+      swapWithTeacherId: swapWithTeacherId ?? this.swapWithTeacherId,
+      swapWithTeacherName: swapWithTeacherName ?? this.swapWithTeacherName,
+      swapTargetSlotId: swapTargetSlotId ?? this.swapTargetSlotId,
+      swapTargetSection: swapTargetSection ?? this.swapTargetSection,
+      swapTargetDay: swapTargetDay ?? this.swapTargetDay,
+      swapTargetTime: swapTargetTime ?? this.swapTargetTime,
     );
   }
   
